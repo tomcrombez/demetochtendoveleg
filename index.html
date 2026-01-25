@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ochtendvergadering Topics</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Ochtendvergadering</p>
+          <h1>Topics en conclusies</h1>
+          <p class="subtitle">
+            Voeg onderwerpen toe per dag, navigeer terug naar eerdere topics en noteer conclusies tijdens de vergadering.
+          </p>
+        </div>
+        <div class="date-panel">
+          <label for="datePicker">Dag kiezen</label>
+          <div class="date-controls">
+            <input type="date" id="datePicker" />
+            <button id="todayBtn" class="secondary">Vandaag</button>
+            <button id="goBtn">Ga naar dag</button>
+          </div>
+          <p id="activeDate" class="active-date"></p>
+        </div>
+      </header>
+
+      <main>
+        <section class="card">
+          <div class="card-header">
+            <h2>Nieuw topic toevoegen</h2>
+            <p>Maak een agenda-item aan voor de geselecteerde dag.</p>
+          </div>
+          <form id="topicForm" class="topic-form">
+            <div class="field">
+              <label for="topicTitle">Titel</label>
+              <input
+                id="topicTitle"
+                name="topicTitle"
+                type="text"
+                placeholder="Bijv. Nieuwe leerling, excursie, planning..."
+                required
+              />
+            </div>
+            <button type="submit">Toevoegen</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <h2>Topics voor deze dag</h2>
+            <p>Noteer bij elk topic de conclusie zodat afwezigen het kunnen nalezen.</p>
+          </div>
+          <div id="emptyState" class="empty-state">
+            <p>Er zijn nog geen topics voor deze dag.</p>
+          </div>
+          <ul id="topicList" class="topic-list"></ul>
+        </section>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
