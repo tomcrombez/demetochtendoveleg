@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-board-bg text-slate-900;
+}
+
+button,
+input,
+select,
+textarea {
+  @apply focus:outline-none focus:ring-2 focus:ring-board-accent/50;
+}
