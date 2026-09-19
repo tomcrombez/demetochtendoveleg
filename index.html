@@ -9,7 +9,7 @@
 <body>
 <header class="topbar">
   <div class="brand"><span class="brand-mark" aria-hidden="true">M</span><div><span class="eyebrow">De MET · teamruimte</span><h1>Ochtendkring</h1></div></div>
-  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><span id="userEmail" class="user-email"></span><button id="loginBtn" type="button" class="primary" onclick="window.location.href='https://krarqagmjrbvsvlcbdwd.supabase.co/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(location.origin+location.pathname)">Inloggen met Google</button><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
+  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><span id="userEmail" class="user-email"></span><button id="loginBtn" type="button" class="primary">Inloggen met Google</button><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
 </header>
 <main class="container">
   <section class="hero card">
@@ -71,6 +71,7 @@ const SUPABASE_URL='https://krarqagmjrbvsvlcbdwd.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg';
 const sb=(()=>{
   const STORE='ochtendkring_session_v1';
+  const PKCE_STORE='ochtendkring_pkce_verifier_v1';
   let session=null, readyResolve, initialized=false;
   const ready=new Promise(r=>readyResolve=r);
   const listeners=[];
@@ -99,6 +100,21 @@ const sb=(()=>{
   }
   async function init(){
     try{
+      const query=new URLSearchParams(location.search);
+      const authCode=query.get('code');
+      if(authCode){
+        const verifier=localStorage.getItem(PKCE_STORE);
+        if(!verifier)throw new Error('PKCE-verifier ontbreekt');
+        const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=pkce',{
+          method:'POST',
+          headers:{'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},
+          body:JSON.stringify({auth_code:authCode,code_verifier:verifier})
+        });
+        if(!r.ok)throw new Error('PKCE-code kon niet worden omgezet in een sessie');
+        session=await r.json();
+        localStorage.removeItem(PKCE_STORE);
+        history.replaceState(null,document.title,location.pathname);
+      }
       const hash=new URLSearchParams(location.hash.replace(/^#/,''));
       if(hash.get('access_token')){
         const accessToken=hash.get('access_token');
@@ -160,7 +176,18 @@ const sb=(()=>{
     from:(table)=>new Query(table),
     auth:{
       getUser:async()=>{await ready;return {data:{user:session?.user||null},error:null}},
-      signInWithOAuth:async({provider,options={}})=>{location.href=SUPABASE_URL+'/auth/v1/authorize?provider='+encodeURIComponent(provider)+'&redirect_to='+encodeURIComponent(options.redirectTo||location.origin+location.pathname);return {data:null,error:null}},
+      signInWithOAuth:async({provider,options={}})=>{
+        try{
+          const bytes=new Uint8Array(32);crypto.getRandomValues(bytes);
+          const verifier=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')+btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+          const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier));
+          const challenge=btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+          localStorage.setItem(PKCE_STORE,verifier);
+          const redirectTo=options.redirectTo||location.origin+location.pathname;
+          location.href=SUPABASE_URL+'/auth/v1/authorize?provider='+encodeURIComponent(provider)+'&redirect_to='+encodeURIComponent(redirectTo)+'&code_challenge='+encodeURIComponent(challenge)+'&code_challenge_method=S256';
+          return {data:null,error:null};
+        }catch(error){return {data:null,error}};
+      },
       signOut:async()=>{session=null;save();notify('SIGNED_OUT');return {error:null}},
       onAuthStateChange:(fn)=>{listeners.push(fn);if(initialized)setTimeout(()=>fn('INITIAL_SESSION',session),0);return {data:{subscription:{unsubscribe:()=>{const i=listeners.indexOf(fn);if(i>=0)listeners.splice(i,1)}}}}}
     },
@@ -346,12 +373,16 @@ $('#archiveBtn').onclick=archiveOverview;
 $('#closeArchive').onclick=()=>$('#archiveDialog').close();
 $('#archiveDialog').addEventListener('click',e=>{if(e.target===$('#archiveDialog'))$('#archiveDialog').close()});$('#closeWeek').onclick=()=>$('#weekDialog').close();$('#weekDialog').addEventListener('click',e=>{if(e.target===$('#weekDialog'))$('#weekDialog').close()});
 $('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);
+sb.auth.onAuthStateChange(async (event)=>{
+  await refreshAuth();
+  await render();
+  await renderCheckin();
+  if(event==='SIGNED_IN'||event==='INITIAL_SESSION')subscribe();
+});
 (async()=>{
   await refreshAuth();
   await render();
   await renderCheckin();
-  subscribe();
 })();
-sb.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN'||event==='INITIAL_SESSION'||event==='SIGNED_OUT')refreshAuth()});
 </script>
 </body></html>
