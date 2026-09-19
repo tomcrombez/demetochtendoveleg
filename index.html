@@ -5,6 +5,23 @@
 <title>Ochtendkring · Teamruimte</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  function installGoogleLogin(){
+    const btn=document.getElementById('loginBtn');
+    if(!btn)return;
+    btn.onclick=function(){
+      btn.disabled=true;
+      btn.textContent='Doorsturen…';
+      const redirectTo=window.location.origin+window.location.pathname;
+      const authUrl='https://krarqagmjrbvsvlcbdwd.supabase.co/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(redirectTo);
+      window.location.href=authUrl;
+    };
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installGoogleLogin);
+  else installGoogleLogin();
+})();
+</script>
 </head>
 <body>
 <header class="topbar">
