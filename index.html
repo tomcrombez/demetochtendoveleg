@@ -8,33 +8,34 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><span class="eyebrow">Teamruimte</span><h1>Ochtendkring</h1></div>
-  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span id="userEmail" class="user-email"></span><button id="loginBtn" class="primary">Inloggen met Google</button><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
+  <div class="brand"><span class="brand-mark" aria-hidden="true">M</span><div><span class="eyebrow">De MET · teamruimte</span><h1>Ochtendkring</h1></div></div>
+  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><span id="userEmail" class="user-email"></span><button id="loginBtn" class="primary">Inloggen met Google</button><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
 </header>
 <main class="container">
   <section class="hero card">
-    <div>
+    <div class="hero-copy">
+      <span class="hero-kicker">Dagstart · samen scherp</span>
       <div class="date-row"><button id="prevDay" class="icon-btn" aria-label="Vorige dag">←</button><input id="datePicker" type="date" aria-label="Datum"><button id="nextDay" class="icon-btn" aria-label="Volgende dag">→</button><button id="todayBtn" class="secondary">Vandaag</button></div>
       <h2 id="dayTitle">Ochtendkring</h2><p class="muted">Samen bepalen wat vandaag besproken, gelezen of gesynchroniseerd moet worden.</p>
     </div>
-    <div class="hero-tools"><button id="weekBtn" class="secondary">Weekoverzicht</button></div>
+    <div class="hero-tools"><button id="weekBtn" class="secondary week-button"><span aria-hidden="true">▦</span> Weekoverzicht</button></div>
   </section>
   <div id="loginNotice" class="notice">Log in met je Google-account om als team te werken. Zonder login kun je de demo lokaal uitproberen.</div>
 
   <section class="grid three">
-    <article class="card section-card"><div class="section-head"><div><span class="tag discuss">BESPREKEN</span><h3>Moet besproken worden</h3></div><span id="countDiscuss" class="count">0</span></div>
+    <article class="card section-card discuss-card"><div class="section-head"><div class="section-title"><span class="section-icon discuss-icon" aria-hidden="true">●</span><div><span class="tag discuss">BESPREKEN</span><h3>Bespreken</h3><p class="section-description">Moet besproken worden</p></div></div><span id="countDiscuss" class="count" aria-label="Aantal bespreekpunten">0</span></div>
       <form class="add-form" data-type="discuss"><input required maxlength="180" placeholder="Nieuw bespreekpunt…"><button aria-label="Toevoegen">+</button></form><ul id="listDiscuss" class="item-list"></ul>
     </article>
-    <article class="card section-card"><div class="section-head"><div><span class="tag read">LEZEN</span><h3>Gewoon lezen</h3></div><span id="countRead" class="count">0</span></div>
+    <article class="card section-card read-card"><div class="section-head"><div class="section-title"><span class="section-icon read-icon" aria-hidden="true">▤</span><div><span class="tag read">LEZEN</span><h3>Lezen</h3><p class="section-description">Gewoon lezen</p></div></div><span id="countRead" class="count" aria-label="Aantal leesitems">0</span></div>
       <form class="add-form" data-type="read"><input required maxlength="180" placeholder="Mededeling / info…"><button aria-label="Toevoegen">+</button></form><ul id="listRead" class="item-list"></ul>
     </article>
-    <article class="card section-card"><div class="section-head"><div><span class="tag sync">1-OP-1</span><h3>Kort even syncen</h3></div><span id="countSync" class="count">0</span></div>
+    <article class="card section-card sync-card"><div class="section-head"><div class="section-title"><span class="section-icon sync-icon" aria-hidden="true">↗</span><div><span class="tag sync">1-OP-1</span><h3>1-op-1</h3><p class="section-description">Kort even syncen</p></div></div><span id="countSync" class="count" aria-label="Aantal 1-op-1-items">0</span></div>
       <form class="add-form" data-type="sync"><input required maxlength="180" placeholder="Met wie / waarover?"><button aria-label="Toevoegen">+</button></form><ul id="listSync" class="item-list"></ul>
     </article>
   </section>
 
-  <section class="card announcements">
-    <div class="section-head"><div><span class="tag pupils">OCHTENDKRING</span><h3>Mededelingen voor leerlingen</h3></div><span class="muted small">Kies voor wie de mededeling is</span></div>
+  <section class="card announcements announcement-card">
+    <div class="section-head"><div class="section-title"><span class="section-icon pupils-icon" aria-hidden="true">✦</span><div><span class="tag pupils">OCHTENDKRING</span><h3>Mededelingen voor leerlingen</h3><p class="section-description">Een heldere boodschap voor elke doelgroep</p></div></div><span class="muted small">Kies voor wie de mededeling is</span></div>
     <div class="tabs" role="tablist"><button class="tab active" data-grade="all">Iedereen</button><button class="tab" data-grade="first">1e graad</button><button class="tab" data-grade="second">2e graad</button><button class="tab" data-grade="third">3e graad</button></div>
     <form id="announcementForm" class="announcement-form"><select id="announcementGrade" aria-label="Voor wie?"><option value="all">Iedereen</option><option value="first">1e graad</option><option value="second">2e graad</option><option value="third">3e graad</option></select><input id="announcementInput" required maxlength="220" placeholder="Wat moeten de leerlingen weten?"><button class="primary">Mededeling toevoegen</button></form>
     <ul id="announcementList" class="item-list"></ul>
