@@ -157,7 +157,7 @@ const sb=(()=>{
       signOut:async()=>{session=null;save();notify('SIGNED_OUT');return {error:null}},
       onAuthStateChange:(fn)=>{listeners.push(fn);if(initialized)setTimeout(()=>fn('INITIAL_SESSION',session),0);return {data:{subscription:{unsubscribe:()=>{const i=listeners.indexOf(fn);if(i>=0)listeners.splice(i,1)}}}}}
     },
-    channel:()=>({on(){return this},subscribe(){return this}}),
+    channel:()=>{const ch={on(){return ch},subscribe(cb){if(cb)cb('SUBSCRIBED');return ch}};return ch},
     removeChannel:()=>{}
   };
 })();
