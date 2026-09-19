@@ -76,7 +76,14 @@ const sb=(()=>{
   const listeners=[];
   const save=()=>session?localStorage.setItem(STORE,JSON.stringify(session)):localStorage.removeItem(STORE);
   const notify=(event)=>listeners.forEach(fn=>{try{fn(event,session)}catch(e){console.error(e)}});
-  function jwtExp(token){try{return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp||0}catch(e){return 0}}
+  function decodeJwt(token){
+    try{
+      const part=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+      const json=decodeURIComponent(atob(part.padEnd(part.length+((4-part.length%4)%4),'=')).split('').map(ch=>'%'+('00'+ch.charCodeAt(0).toString(16)).slice(-2)).join(''));
+      return JSON.parse(json);
+    }catch(e){return null}
+  }
+  function jwtExp(token){return Number(decodeJwt(token)?.exp||0)}
   async function refresh(){
     if(!session?.refresh_token)return false;
     try{
@@ -94,12 +101,15 @@ const sb=(()=>{
     try{
       const hash=new URLSearchParams(location.hash.replace(/^#/,''));
       if(hash.get('access_token')){
+        const accessToken=hash.get('access_token');
+        const claims=decodeJwt(accessToken)||{};
         session={
-          access_token:hash.get('access_token'),
+          access_token:accessToken,
           refresh_token:hash.get('refresh_token')||'',
           token_type:hash.get('token_type')||'bearer',
           expires_in:Number(hash.get('expires_in')||3600),
-          expires_at:Math.floor(Date.now()/1000)+Number(hash.get('expires_in')||3600)
+          expires_at:Number(claims.exp||0)||Math.floor(Date.now()/1000)+Number(hash.get('expires_in')||3600),
+          user:{id:claims.sub,email:claims.email,user_metadata:{full_name:claims.user_metadata?.full_name||claims.name||claims.email}}
         };
         save();
         history.replaceState(null,document.title,location.pathname+location.search);
@@ -110,10 +120,7 @@ const sb=(()=>{
       if(session){
         const r=await fetch(SUPABASE_URL+'/auth/v1/user',{headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token}});
         if(r.ok)session.user=await r.json();
-        else if(await refresh()){
-          const rr=await fetch(SUPABASE_URL+'/auth/v1/user',{headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token}});
-          if(rr.ok)session.user=await rr.json();
-        }
+        else console.warn('Auth user check failed; using JWT identity',r.status);
         save();
       }
     }catch(e){console.error('Auth init',e)}
