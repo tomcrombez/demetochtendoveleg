@@ -53,7 +53,7 @@
       <form class="add-form" data-type="read"><input required maxlength="180" placeholder="Mededeling / info…"><button aria-label="Toevoegen">+</button></form><ul id="listRead" class="item-list"></ul>
     </article>
     <article class="card section-card sync-card"><div class="section-head"><div class="section-title"><span class="section-icon sync-icon" aria-hidden="true">↗</span><div><span class="tag sync">1-OP-1</span><h3>1-op-1</h3><p class="section-description">Kort even syncen</p></div></div><span id="countSync" class="count" aria-label="Aantal 1-op-1-items">0</span></div>
-      <form class="add-form sync-form" data-type="sync"><input class="sync-person" required maxlength="100" placeholder="Met wie wil je 1-op-1?"><input class="sync-reason" required maxlength="180" placeholder="Waarover gaat het?"><button id="addSyncBtn" type="button" aria-label="1-op-1 toevoegen" onclick="window.addSyncItem()">+</button></form><ul id="listSync" class="item-list"></ul>
+      <form class="add-form sync-form" data-type="sync"><input class="sync-person" required maxlength="100" placeholder="Met wie wil je 1-op-1?"><input class="sync-reason" required maxlength="180" placeholder="Waarover gaat het?"><button id="addSyncBtn" type="submit" aria-label="1-op-1 toevoegen">+</button></form><ul id="listSync" class="item-list"></ul>
     </article>
   </section>
 
@@ -121,6 +121,31 @@ async function getUser(){
 }
 async function requireLogin(){const u=await getUser();if(!u){alert('Log eerst in met je Google-account.');return false}return true}
 const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items'};
+document.querySelector('.sync-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const f=e.currentTarget;
+  const person=f.querySelector('.sync-person').value.trim();
+  const reason=f.querySelector('.sync-reason').value.trim();
+  if(!person||!reason)return;
+  try{
+    const {data,error:sessionError}=await sb.auth.getSession();
+    const u=data?.session?.user;
+    if(sessionError||!u){alert('Je bent niet ingelogd.');return}
+    const {error}=await sb.from('sync_items').insert({
+      meeting_date:currentDate,
+      colleague_name:person,
+      reason:reason,
+      is_done:false,
+      created_by:u.id
+    });
+    if(error){console.error('1-op-1 insert',error);alert('Opslaan mislukt: '+error.message);return}
+    f.reset();
+    await render();
+  }catch(error){
+    console.error('1-op-1 actie',error);
+    alert('Er ging iets mis: '+(error.message||error));
+  }
+});
 const CHECKIN_SENTINEL='__OCHTENDKRING_CHECKIN__';
 const checkinSuggestions=[
   'Wat geeft je vandaag energie?',
@@ -319,7 +344,7 @@ async function searchAll(term){
 }
 
 async function weekOverview(){const base=new Date(currentDate+'T12:00:00');const day=(base.getDay()+6)%7;base.setDate(base.getDate()-day);const rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);const ds=d.toISOString().slice(0,10);const [a,b,c,n]=await Promise.all([loadItems('discuss',ds),loadItems('read',ds),loadItems('sync',ds),loadAnnouncements(ds)]);rows.push({ds,a,b,c,n})}$('#weekContent').innerHTML=rows.map(x=>`<button type="button" class="week-day" data-date="${esc(x.ds)}" aria-label="Ga naar ${esc(formatDate(x.ds))}"><h3>${esc(formatDate(x.ds))}</h3><div class="week-grid"><span>Bespreken <b>${x.a.length}</b></span><span>Lezen <b>${x.b.length}</b></span><span>1-op-1 <b>${x.c.length}</b></span><span>Leerlingen <b>${x.n.length}</b></span></div>${x.a.map(i=>`<div class="week-item ${i.discussed?'done':''}">${i.discussed?'✓ ':''}${esc(i.text)}${i.notes?`<small>${esc(i.notes)}</small>`:''}</div>`).join('')}</button>`).join('');$('.week-day').forEach(day=>day.onclick=()=>{setDate(day.dataset.date);$('#weekDialog').close()});$('#weekDialog').showModal()}
-$('.add-form').forEach(f=>f.addEventListener('submit',e=>e.preventDefault()));
+$('.add-form:not(.sync-form)').forEach(f=>f.addEventListener('submit',e=>e.preventDefault()));
 window.addSyncItem=async function(){
   const f=document.querySelector('.sync-form');
   const person=f.querySelector('.sync-person').value.trim();
