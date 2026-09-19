@@ -121,31 +121,6 @@ async function getUser(){
 }
 async function requireLogin(){const u=await getUser();if(!u){alert('Log eerst in met je Google-account.');return false}return true}
 const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items'};
-document.querySelector('.sync-form').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const f=e.currentTarget;
-  const person=f.querySelector('.sync-person').value.trim();
-  const reason=f.querySelector('.sync-reason').value.trim();
-  if(!person||!reason)return;
-  try{
-    const {data,error:sessionError}=await sb.auth.getSession();
-    const u=data?.session?.user;
-    if(sessionError||!u){alert('Je bent niet ingelogd.');return}
-    const {error}=await sb.from('sync_items').insert({
-      meeting_date:currentDate,
-      colleague_name:person,
-      reason:reason,
-      is_done:false,
-      created_by:u.id
-    });
-    if(error){console.error('1-op-1 insert',error);alert('Opslaan mislukt: '+error.message);return}
-    f.reset();
-    await render();
-  }catch(error){
-    console.error('1-op-1 actie',error);
-    alert('Er ging iets mis: '+(error.message||error));
-  }
-});
 const CHECKIN_SENTINEL='__OCHTENDKRING_CHECKIN__';
 const checkinSuggestions=[
   'Wat geeft je vandaag energie?',
@@ -381,7 +356,31 @@ document.querySelectorAll('.add-form:not(.sync-form)').forEach(f=>f.addEventList
 $('#checkinForm').addEventListener('submit',e=>{e.preventDefault();saveCheckin($('#checkinInput').value)});
 $('#editCheckin').onclick=()=>{$('#checkinForm').classList.toggle('hidden');if(!$('#checkinForm').classList.contains('hidden'))$('#checkinInput').focus()};
 $('#resetCheckin').onclick=resetCheckin;
-$('#announcementForm').addEventListener('submit',e=>{e.preventDefault();const input=$('#announcementInput');const text=input.value.trim();if(text){addAnnouncement(text,$('#announcementGrade').value);input.value=''}});
+$('#announcementForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const input=$('#announcementInput');
+  const text=input.value.trim();
+  if(!text)return;
+  try{
+    const {data,error:sessionError}=await sb.auth.getSession();
+    const u=data?.session?.user;
+    if(sessionError||!u){alert('Je bent niet ingelogd.');return}
+    const grade=$('#announcementGrade').value;
+    const audience=dbAudience[grade]||'allen';
+    const {error}=await sb.from('announcements').insert({
+      meeting_date:currentDate,
+      content:text,
+      audience,
+      created_by:u.id
+    });
+    if(error){console.error('Mededeling toevoegen',error);alert('Toevoegen mislukt: '+error.message);return}
+    input.value='';
+    await render();
+  }catch(error){
+    console.error('Mededeling toevoegen',error);
+    alert('Toevoegen mislukt: '+(error.message||error));
+  }
+});
 $$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentGrade=t.dataset.grade;render()});
 $('#datePicker').onchange=e=>setDate(e.target.value);$('#prevDay').onclick=()=>moveDay(-1);$('#nextDay').onclick=()=>moveDay(1);$('#todayBtn').onclick=()=>setDate(localDate());function moveDay(n){const d=dateObj(currentDate);d.setDate(d.getDate()+n);if(d.getDay()===0)d.setDate(d.getDate()+(n>0?1:-2));if(d.getDay()===6)d.setDate(d.getDate()+(n>0?2:-1));setDate(dateString(d))}
 document.getElementById('logoutBtn').addEventListener('click',()=>{
