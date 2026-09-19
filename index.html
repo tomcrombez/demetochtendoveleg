@@ -23,18 +23,24 @@
   <section class="card checkin-card">
     <div class="checkin-main">
       <div class="checkin-badge" aria-hidden="true">☀</div>
-      <div>
+      <div class="checkin-copy">
         <span class="tag checkin-tag">CHECK-IN</span>
         <h3>Vraag van de dag</h3>
         <p id="checkinQuestion" class="checkin-question">Even landen: hoe zit je erbij vandaag?</p>
         <p id="checkinSource" class="muted small">Voorgestelde vraag voor vandaag</p>
       </div>
     </div>
-    <form id="checkinForm" class="checkin-form">
-      <input id="checkinInput" maxlength="240" placeholder="Of geef zelf een check-invraag in…">
-      <button class="secondary" type="submit">Vraag opslaan</button>
-      <button id="resetCheckin" class="secondary" type="button">Voorgestelde vraag</button>
-    </form>
+    <div class="checkin-actions">
+      <button id="editCheckin" class="secondary checkin-edit" type="button">✎ Andere vraag instellen</button>
+      <form id="checkinForm" class="checkin-form hidden">
+        <label for="checkinInput">Eigen vraag voor vandaag</label>
+        <div class="checkin-form-row">
+          <input id="checkinInput" maxlength="240" placeholder="Typ je eigen check-invraag…">
+          <button class="primary" type="submit">Vraag instellen</button>
+          <button id="resetCheckin" class="secondary" type="button">Herstel voorgestelde vraag</button>
+        </div>
+      </form>
+    </div>
   </section>
   <div id="loginNotice" class="notice">Log in met je Google-account om als team te werken. Zonder login kun je de demo lokaal uitproberen.</div>
 
@@ -145,6 +151,8 @@ async function renderCheckin(){
   $('#checkinQuestion').textContent=c.question;
   $('#checkinSource').textContent=c.custom?'Eigen vraag van het team':'Voorgestelde vraag voor vandaag';
   $('#checkinInput').value=c.custom?c.question:'';
+  $('#checkinForm').classList.add('hidden');
+  $('#editCheckin').textContent=c.custom?'✎ Vraag wijzigen':'✎ Andere vraag instellen';
 }
 async function loadAnnouncements(date=currentDate){if(!sb)return demo[key(date,'announcement')]||[];const {data,error}=await sb.from('announcements').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.content,grade:uiAudience[x.audience]||'all',author_name:''}));}
 async function addItem(type,text,extra=''){
@@ -227,6 +235,7 @@ async function searchAll(term){
 async function weekOverview(){const base=new Date(currentDate+'T12:00:00');const day=(base.getDay()+6)%7;base.setDate(base.getDate()-day);const rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);const ds=d.toISOString().slice(0,10);const [a,b,c,n]=await Promise.all([loadItems('discuss',ds),loadItems('read',ds),loadItems('sync',ds),loadAnnouncements(ds)]);rows.push({ds,a,b,c,n})}$('#weekContent').innerHTML=rows.map(x=>`<div class="week-day"><h3>${esc(formatDate(x.ds))}</h3><div class="week-grid"><span>Bespreken <b>${x.a.length}</b></span><span>Lezen <b>${x.b.length}</b></span><span>1-op-1 <b>${x.c.length}</b></span><span>Leerlingen <b>${x.n.length}</b></span></div>${x.a.map(i=>`<div class="week-item ${i.discussed?'done':''}">${i.discussed?'✓ ':''}${esc(i.text)}${i.notes?`<small>${esc(i.notes)}</small>`:''}</div>`).join('')}</div>`).join('');$('#weekDialog').showModal()}
 $('.add-form').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();if(f.dataset.type==='sync'){const person=f.querySelector('.sync-person').value.trim();const reason=f.querySelector('.sync-reason').value.trim();if(person&&reason){addItem('sync',person,reason);f.reset()}}else{const input=f.querySelector('input');const text=input.value.trim();if(text){addItem(f.dataset.type,text);input.value=''}}}));
 $('#checkinForm').addEventListener('submit',e=>{e.preventDefault();saveCheckin($('#checkinInput').value)});
+$('#editCheckin').onclick=()=>{$('#checkinForm').classList.toggle('hidden');if(!$('#checkinForm').classList.contains('hidden'))$('#checkinInput').focus()};
 $('#resetCheckin').onclick=resetCheckin;
 $('#announcementForm').addEventListener('submit',e=>{e.preventDefault();const input=$('#announcementInput');const text=input.value.trim();if(text){addAnnouncement(text,$('#announcementGrade').value);input.value=''}});
 $$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentGrade=t.dataset.grade;render()});
