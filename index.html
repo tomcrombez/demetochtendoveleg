@@ -282,7 +282,7 @@ function renderArchive(weeks){
  const el=$("#archiveContent");
  if(!weeks.length){el.innerHTML="<div class=\"archive-empty\">Er staan nog geen voorbije werkweken in het archief.</div>";$("#archiveDialog").showModal();return}
  el.innerHTML=weeks.map(w=>"<button class=\"archive-week\" data-week=\""+w+"\"><span><strong>Week "+esc(formatWeek(w))+"</strong><small>"+w+"</small></span><span aria-hidden=\"true\">→</span></button>").join("");
- $(".archive-week").forEach(b=>b.onclick=()=>{setDate(b.dataset.week);$("#archiveDialog").close()});$("#archiveDialog").showModal()
+ $$(".archive-week").forEach(b=>b.onclick=()=>{setDate(b.dataset.week);$("#archiveDialog").close()});$("#archiveDialog").showModal()
 }
 async function searchAll(term){
   term=term.trim();if(!term)return;
@@ -314,11 +314,11 @@ async function searchAll(term){
   el.innerHTML=results.length
     ? "<p class=\"search-summary\">"+results.length+" resultaat/resultaten voor <strong>"+esc(term)+"</strong></p>"+results.map(r=>"<button class=\"search-result\" data-date=\""+esc(r.date)+"\"><span class=\"search-result-type\">"+esc(r.type)+"</span><strong>"+esc(r.text)+"</strong><small>"+esc(formatDate(r.date))+(r.detail?" · "+esc(r.detail):"")+"</small></button>").join("")
     : "<div class=\"archive-empty\">Geen resultaten gevonden.</div>";
-  $(".search-result").forEach(b=>b.onclick=()=>{setDate(b.dataset.date);$("#searchDialog").close()});
+  $$(".search-result").forEach(b=>b.onclick=()=>{setDate(b.dataset.date);$("#searchDialog").close()});
   $("#searchDialog").showModal()
 }
 
-async function weekOverview(){const base=new Date(currentDate+'T12:00:00');const day=(base.getDay()+6)%7;base.setDate(base.getDate()-day);const rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);const ds=d.toISOString().slice(0,10);const [a,b,c,n]=await Promise.all([loadItems('discuss',ds),loadItems('read',ds),loadItems('sync',ds),loadAnnouncements(ds)]);rows.push({ds,a,b,c,n})}$('#weekContent').innerHTML=rows.map(x=>`<button type="button" class="week-day" data-date="${esc(x.ds)}" aria-label="Ga naar ${esc(formatDate(x.ds))}"><h3>${esc(formatDate(x.ds))}</h3><div class="week-grid"><span>Bespreken <b>${x.a.length}</b></span><span>Lezen <b>${x.b.length}</b></span><span>1-op-1 <b>${x.c.length}</b></span><span>Leerlingen <b>${x.n.length}</b></span></div>${x.a.map(i=>`<div class="week-item ${i.discussed?'done':''}">${i.discussed?'✓ ':''}${esc(i.text)}${i.notes?`<small>${esc(i.notes)}</small>`:''}</div>`).join('')}</button>`).join('');$('.week-day').forEach(day=>day.onclick=()=>{setDate(day.dataset.date);$('#weekDialog').close()});$('#weekDialog').showModal()}
+async function weekOverview(){const base=new Date(currentDate+'T12:00:00');const day=(base.getDay()+6)%7;base.setDate(base.getDate()-day);const rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);const ds=d.toISOString().slice(0,10);const [a,b,c,n]=await Promise.all([loadItems('discuss',ds),loadItems('read',ds),loadItems('sync',ds),loadAnnouncements(ds)]);rows.push({ds,a,b,c,n})}$('#weekContent').innerHTML=rows.map(x=>`<button type="button" class="week-day" data-date="${esc(x.ds)}" aria-label="Ga naar ${esc(formatDate(x.ds))}"><h3>${esc(formatDate(x.ds))}</h3><div class="week-grid"><span>Bespreken <b>${x.a.length}</b></span><span>Lezen <b>${x.b.length}</b></span><span>1-op-1 <b>${x.c.length}</b></span><span>Leerlingen <b>${x.n.length}</b></span></div>${x.a.map(i=>`<div class="week-item ${i.discussed?'done':''}">${i.discussed?'✓ ':''}${esc(i.text)}${i.notes?`<small>${esc(i.notes)}</small>`:''}</div>`).join('')}</button>`).join('');$$('.week-day').forEach(day=>day.onclick=()=>{setDate(day.dataset.date);$('#weekDialog').close()});$('#weekDialog').showModal()}
 async function saveNewItem(type,fields){
   try{
     const {data,error:sessionError}=await sb.auth.getSession();
