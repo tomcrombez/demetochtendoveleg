@@ -207,7 +207,6 @@ async function addItem(type,text,extra=''){
     return false;
   }
   await render();
-  await refreshAuth();
   return true;
 }
 async function deleteItem(type,id){if(!await requireLogin())return;if(!sb){const k=key(currentDate,type);demo[k]=(demo[k]||[]).filter(x=>x.id!==id);saveDemo();return render()}const {error}=await sb.from(tableFor[type]).delete().eq('id',id);if(error)alert(error.message);else render()}
