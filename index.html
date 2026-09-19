@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ochtendkring · Teamruimte</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
 <body>
 <header class="topbar">
@@ -69,7 +69,98 @@
 <script>
 const SUPABASE_URL='https://krarqagmjrbvsvlcbdwd.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}});
+const sb=(()=>{
+  const STORE='ochtendkring_session_v1';
+  let session=null, readyResolve, initialized=false;
+  const ready=new Promise(r=>readyResolve=r);
+  const listeners=[];
+  const save=()=>session?localStorage.setItem(STORE,JSON.stringify(session)):localStorage.removeItem(STORE);
+  const notify=(event)=>listeners.forEach(fn=>{try{fn(event,session)}catch(e){console.error(e)}});
+  function jwtExp(token){try{return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp||0}catch(e){return 0}}
+  async function refresh(){
+    if(!session?.refresh_token)return false;
+    try{
+      const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{
+        method:'POST',headers:{'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({refresh_token:session.refresh_token})
+      });
+      if(!r.ok)throw new Error('Sessie vernieuwen mislukt');
+      const x=await r.json();
+      session={...session,...x,expires_at:Math.floor(Date.now()/1000)+(x.expires_in||3600)};
+      save(); return true;
+    }catch(e){console.error(e);session=null;save();return false}
+  }
+  async function init(){
+    try{
+      const hash=new URLSearchParams(location.hash.replace(/^#/,''));
+      if(hash.get('access_token')){
+        session={
+          access_token:hash.get('access_token'),
+          refresh_token:hash.get('refresh_token')||'',
+          token_type:hash.get('token_type')||'bearer',
+          expires_in:Number(hash.get('expires_in')||3600),
+          expires_at:Math.floor(Date.now()/1000)+Number(hash.get('expires_in')||3600)
+        };
+        save();
+        history.replaceState(null,document.title,location.pathname+location.search);
+      }else{
+        try{session=JSON.parse(localStorage.getItem(STORE)||'null')}catch(e){session=null}
+      }
+      if(session && (!session.expires_at || session.expires_at < Math.floor(Date.now()/1000)+60)) await refresh();
+      if(session){
+        const r=await fetch(SUPABASE_URL+'/auth/v1/user',{headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token}});
+        if(r.ok)session.user=await r.json();
+        else if(await refresh()){
+          const rr=await fetch(SUPABASE_URL+'/auth/v1/user',{headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token}});
+          if(rr.ok)session.user=await rr.json();
+        }
+        save();
+      }
+    }catch(e){console.error('Auth init',e)}
+    initialized=true;readyResolve();notify('INITIAL_SESSION');
+  }
+  class Query{
+    constructor(table){this.table=table;this.params=new URLSearchParams();this.method='GET';this.body=null;this.returning=false}
+    select(cols='*'){this.params.set('select',cols);this.returning=true;return this}
+    eq(k,v){this.params.set(k,'eq.'+v);return this}
+    neq(k,v){this.params.set(k,'neq.'+v);return this}
+    ilike(k,v){this.params.set(k,'ilike.'+v);return this}
+    lt(k,v){this.params.set(k,'lt.'+v);return this}
+    order(k,o={}){this.params.set('order',k+'.'+(o.ascending===false?'desc':'asc'));return this}
+    limit(n){this.params.set('limit',n);return this}
+    insert(payload){this.method='POST';this.body=payload;this.returning=true;return this}
+    update(payload){this.method='PATCH';this.body=payload;this.returning=true;return this}
+    delete(){this.method='DELETE';return this}
+    async exec(){
+      await ready;
+      if(!session?.access_token)return {data:null,error:{message:'Not authenticated'}};
+      if(session.expires_at && session.expires_at<Math.floor(Date.now()/1000)+30)await refresh();
+      const url=SUPABASE_URL+'/rest/v1/'+encodeURIComponent(this.table)+(this.params.toString()?'?'+this.params.toString():'');
+      const headers={'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'};
+      if(this.returning)headers.Prefer='return=representation';
+      let r=await fetch(url,{method:this.method,headers,body:this.body?JSON.stringify(this.body):undefined});
+      if(r.status===401 && await refresh()){
+        headers.Authorization='Bearer '+session.access_token;
+        r=await fetch(url,{method:this.method,headers,body:this.body?JSON.stringify(this.body):undefined});
+      }
+      const text=await r.text();let data=null;try{data=text?JSON.parse(text):null}catch(e){}
+      return r.ok?{data,error:null}:{data:null,error:{message:data?.message||data?.error_description||text||('HTTP '+r.status)}};
+    }
+    then(resolve,reject){return this.exec().then(resolve,reject)}
+  }
+  init();
+  return {
+    from:(table)=>new Query(table),
+    auth:{
+      getUser:async()=>{await ready;return {data:{user:session?.user||null},error:null}},
+      signInWithOAuth:async({provider,options={}})=>{location.href=SUPABASE_URL+'/auth/v1/authorize?provider='+encodeURIComponent(provider)+'&redirect_to='+encodeURIComponent(options.redirectTo||location.origin+location.pathname);return {data:null,error:null}},
+      signOut:async()=>{session=null;save();notify('SIGNED_OUT');return {error:null}},
+      onAuthStateChange:(fn)=>{listeners.push(fn);if(initialized)setTimeout(()=>fn('INITIAL_SESSION',session),0);return {data:{subscription:{unsubscribe:()=>{const i=listeners.indexOf(fn);if(i>=0)listeners.splice(i,1)}}}}}
+    },
+    channel:()=>({on(){return this},subscribe(){return this}}),
+    removeChannel:()=>{}
+  };
+})();
 let currentDate=initialDate(); let currentGrade='all'; let demo=JSON.parse(localStorage.getItem('ochtendkring_demo')||'{}'); let channel=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const labels={all:'Iedereen',first:'1e graad',second:'2e graad',third:'3e graad'};
