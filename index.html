@@ -193,11 +193,20 @@ el.append(node)})}
 function drawAnnouncements(items){const visible=currentGrade==='all'?items:items.filter(a=>a.grade==='all'||a.grade===currentGrade);const el=$('#announcementList');el.innerHTML='';if(!visible.length){el.innerHTML='<li class="empty">Nog geen mededelingen voor deze selectie.</li>';return}visible.forEach(a=>{const li=document.createElement('li');li.className='item';li.innerHTML=`<div class="item-main"><span class="item-text">${esc(a.text)}</span><span class="meta"><span class="audience">${esc(labels[a.grade])}</span> · ${esc(a.author_name||'')} ${a.created_at?'· '+new Date(a.created_at).toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}):''}</span></div><button class="delete" title="Verwijderen">×</button>`;li.querySelector('.delete').onclick=()=>deleteAnnouncement(a.id);el.append(li)})}
 async function render(){try{const [d,r,s,a]=await Promise.all([loadItems('discuss'),loadItems('read'),loadItems('sync'),loadAnnouncements()]);drawList($('#listDiscuss'),d,'discuss');drawList($('#listRead'),r,'read');drawList($('#listSync'),s,'sync');drawAnnouncements(a);$('#countDiscuss').textContent=d.length;$('#countRead').textContent=r.length;$('#countSync').textContent=s.length;setStatus('online')}catch(e){console.error(e);setStatus('offline');}}
 function setStatus(state){const el=$('#syncStatus');el.className='status-dot '+state;el.title=state==='online'?'Verbonden':'Offline / fout'}
+let googleNonce='';
+let googleInitPromise=null;
+async function makeGoogleNonce(){
+  const nonce=btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
+  const hashBuffer=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(nonce));
+  const hashArray=Array.from(new Uint8Array(hashBuffer));
+  return {nonce,hashedNonce:hashArray.map(b=>b.toString(16).padStart(2,'0')).join('')};
+}
 async function handleGoogleCredential(response){
   try{
     const {error}=await sb.auth.signInWithIdToken({
       provider:'google',
-      token:response.credential
+      token:response.credential,
+      nonce:googleNonce
     });
     if(error) throw error;
     await refreshAuth();
@@ -211,25 +220,32 @@ async function handleGoogleCredential(response){
 }
 function initGoogleSignIn(){
   if(!window.google?.accounts?.id)return;
-  google.accounts.id.initialize({
-    client_id:'742879413523-9e3rdaehe1qmct4tpjajv7r48q071i64.apps.googleusercontent.com',
-    callback:handleGoogleCredential,
-    ux_mode:'popup',
-    use_fedcm_for_button:true
-  });
-  const el=document.getElementById('googleSignIn');
-  if(el){
-    el.innerHTML='';
-    google.accounts.id.renderButton(el,{
-      type:'standard',
-      theme:'outline',
-      size:'large',
-      text:'signin_with',
-      shape:'rectangular',
-      logo_alignment:'left',
-      width:190
+  if(googleInitPromise)return googleInitPromise;
+  googleInitPromise=(async()=>{
+    const pair=await makeGoogleNonce();
+    googleNonce=pair.nonce;
+    google.accounts.id.initialize({
+      client_id:'742879413523-9e3rdaehe1qmct4tpjajv7r48q071i64.apps.googleusercontent.com',
+      callback:handleGoogleCredential,
+      nonce:pair.hashedNonce,
+      ux_mode:'popup',
+      use_fedcm_for_button:true
     });
-  }
+    const el=document.getElementById('googleSignIn');
+    if(el){
+      el.innerHTML='';
+      google.accounts.id.renderButton(el,{
+        type:'standard',
+        theme:'outline',
+        size:'large',
+        text:'signin_with',
+        shape:'rectangular',
+        logo_alignment:'left',
+        width:190
+      });
+    }
+  })();
+  return googleInitPromise;
 }
 window.onGoogleLibraryLoad=initGoogleSignIn;
 setTimeout(initGoogleSignIn,1000);
