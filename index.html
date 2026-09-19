@@ -10,7 +10,7 @@
 <body>
 <header class="topbar">
   <div class="brand"><span class="brand-mark" aria-hidden="true">M</span><div><span class="eyebrow">De MET · teamruimte</span><h1>Ochtendkring</h1></div></div>
-  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><div id="googleSignIn" aria-label="Inloggen met Google"></div><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
+  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><div id="googleSignIn" aria-label="Inloggen met Google"></div><button id="logoutBtn" type="button" class="secondary hidden">Uitloggen</button></div>
 </header>
 <main class="container">
   <section class="hero card">
@@ -289,17 +289,21 @@ $('#resetCheckin').onclick=resetCheckin;
 $('#announcementForm').addEventListener('submit',e=>{e.preventDefault();const input=$('#announcementInput');const text=input.value.trim();if(text){addAnnouncement(text,$('#announcementGrade').value);input.value=''}});
 $$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentGrade=t.dataset.grade;render()});
 $('#datePicker').onchange=e=>setDate(e.target.value);$('#prevDay').onclick=()=>moveDay(-1);$('#nextDay').onclick=()=>moveDay(1);$('#todayBtn').onclick=()=>setDate(localDate());function moveDay(n){const d=dateObj(currentDate);d.setDate(d.getDate()+n);if(d.getDay()===0)d.setDate(d.getDate()+(n>0?1:-2));if(d.getDay()===6)d.setDate(d.getDate()+(n>0?2:-1));setDate(dateString(d))}
-$('#logoutBtn').onclick=async()=>{
-  const {error}=await sb.auth.signOut({scope:'local'});
-  if(error){
-    console.error('Uitloggen mislukt',error);
-    alert('Uitloggen mislukt: '+(error.message||error));
-    return;
+document.getElementById('logoutBtn').addEventListener('click',async()=>{
+  try{
+    const {error}=await sb.auth.signOut({scope:'local'});
+    if(error) console.warn('Supabase signOut:',error);
+  }catch(error){
+    console.warn('Supabase signOut exception:',error);
   }
+  // Zorg dat de lokale sessie ook echt weg is, zelfs als de server-call faalt.
+  try{
+    localStorage.removeItem('sb-krarqagmjrbvsvlcbdwd-auth-token');
+  }catch(error){}
   await refreshAuth();
   await render();
   await renderCheckin();
-};$('#weekBtn').onclick=weekOverview;
+});$('#weekBtn').onclick=weekOverview;
 $('#searchForm').addEventListener('submit',e=>{e.preventDefault();searchAll($('#searchInput').value)});
 $('#closeSearch').onclick=()=>$('#searchDialog').close();
 $('#searchDialog').addEventListener('click',e=>{if(e.target===$('#searchDialog'))$('#searchDialog').close()});
