@@ -18,7 +18,7 @@
       <div class="date-row"><button id="prevDay" class="icon-btn" aria-label="Vorige dag">←</button><input id="datePicker" type="date" aria-label="Datum"><button id="nextDay" class="icon-btn" aria-label="Volgende dag">→</button><button id="todayBtn" class="secondary">Vandaag</button></div>
       <h2 id="dayTitle">Ochtendkring</h2><p class="muted">Samen bepalen wat vandaag besproken, gelezen of gesynchroniseerd moet worden.</p>
     </div>
-    <div class="hero-tools"><button id="weekBtn" class="secondary week-button"><span aria-hidden="true">▦</span> Weekoverzicht</button></div>
+    <div class="hero-tools"><div class="hero-tool-row"><button id="weekBtn" class="secondary week-button"><span aria-hidden="true">▦</span> Weekoverzicht</button><button id="archiveBtn" class="secondary"><span aria-hidden="true">🗂</span> Archief</button></div><form id="searchForm" class="search-form" role="search"><input id="searchInput" type="search" placeholder="Zoek in alle overleginfo…" aria-label="Zoek in alle overleginfo"><button class="primary" type="submit">Zoeken</button></form></div>
   </section>
   <div id="loginNotice" class="notice">Log in met je Google-account om als team te werken. Zonder login kun je de demo lokaal uitproberen.</div>
 
@@ -42,16 +42,22 @@
   </section>
 </main>
 
-<dialog id="weekDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Overzicht</span><h2>Deze week</h2></div><button id="closeWeek" class="icon-btn">×</button></div><div id="weekContent"></div></dialog>
+<dialog id="weekDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Overzicht</span><h2>Deze week</h2></div><button id="closeWeek" class="icon-btn">×</button></div><div id="weekContent"></div></dialog><dialog id="archiveDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Historiek</span><h2>Archief</h2><p class="muted small">Voorbije werkweken blijven bewaard.</p></div><button id="closeArchive" class="icon-btn">×</button></div><div id="archiveContent"></div></dialog><dialog id="searchDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Zoeken</span><h2>Zoekresultaten</h2></div><button id="closeSearch" class="icon-btn">×</button></div><div id="searchContent"></div></dialog>
 <template id="itemTemplate"><li class="item"><div class="item-main"><span class="item-text"></span><span class="meta"></span></div><button class="delete" title="Verwijderen" aria-label="Verwijderen">×</button></li></template>
 <script>
 const SUPABASE_URL='https://krarqagmjrbvsvlcbdwd.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-let currentDate=localDate(); let currentGrade='all'; let demo=JSON.parse(localStorage.getItem('ochtendkring_demo')||'{}'); let channel=null;
+let currentDate=initialDate(); let currentGrade='all'; let demo=JSON.parse(localStorage.getItem('ochtendkring_demo')||'{}'); let channel=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const labels={all:'Iedereen',first:'1e graad',second:'2e graad',third:'3e graad'};
 function localDate(){const d=new Date(),off=d.getTimezoneOffset();return new Date(d.getTime()-off*60000).toISOString().slice(0,10)}
+function dateObj(ds){return new Date(ds+"T12:00:00")} function dateString(d){return d.toISOString().slice(0,10)}
+function mondayOf(ds){const d=dateObj(ds),day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return d}
+function nextMonday(ds){const d=dateObj(ds),day=d.getDay();d.setDate(d.getDate()+(day===0?1:8-day));return dateString(d)}
+function initialDate(){const d=localDate(),day=dateObj(d).getDay();return day===0||day===6?nextMonday(d):d}
+function weekKey(ds){return dateString(mondayOf(ds))}
+function formatWeek(ds){const m=mondayOf(ds),f=new Date(m);f.setDate(m.getDate()+4);return new Intl.DateTimeFormat("nl-BE",{day:"numeric",month:"long",year:"numeric"}).format(m)+" – "+new Intl.DateTimeFormat("nl-BE",{day:"numeric",month:"long",year:"numeric"}).format(f)}
 function key(d,t){return `${d}::${t}`} function uid(){return crypto.randomUUID?crypto.randomUUID():Date.now()+Math.random()}
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function formatDate(d){return new Intl.DateTimeFormat('nl-BE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(d+'T12:00:00'))}
@@ -96,11 +102,34 @@ async function render(){try{const [d,r,s,a]=await Promise.all([loadItems('discus
 function setStatus(state){const el=$('#syncStatus');el.className='status-dot '+state;el.title=state==='online'?'Verbonden':'Offline / fout'}
 async function refreshAuth(){const u=await getUser();$('#userEmail').textContent=u?(u.user_metadata?.full_name||u.email):'';$('#loginBtn').classList.toggle('hidden',!!u);$('#logoutBtn').classList.toggle('hidden',!u);$('#loginNotice').classList.toggle('hidden',!!u);setStatus(u?'online':'offline')}
 function subscribe(){if(channel)sb.removeChannel(channel);channel=sb.channel('ochtendkring-live').on('postgres_changes',{event:'*',schema:'public',table:'discussion_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'reading_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'sync_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'announcements'},()=>render()).subscribe(s=>setStatus(s==='SUBSCRIBED'?'online':'offline'))}
+async function weekDates(baseDate=currentDate){const base=mondayOf(baseDate),rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);rows.push(dateString(d))}return rows}
+function archiveWeeksFromDates(dates){const currentWeek=weekKey(currentDate);return [...new Set(dates.map(weekKey))].filter(w=>w<currentWeek).sort((a,b)=>b.localeCompare(a))}
+async function archiveOverview(){
+ if(!sb){const dates=Object.keys(demo).map(k=>k.split("::")[0]).filter(Boolean);return renderArchive(archiveWeeksFromDates(dates))}
+ const qs=await Promise.all([sb.from("discussion_items").select("meeting_date").lt("meeting_date",weekKey(currentDate)),sb.from("reading_items").select("meeting_date").lt("meeting_date",weekKey(currentDate)),sb.from("sync_items").select("meeting_date").lt("meeting_date",weekKey(currentDate)),sb.from("announcements").select("meeting_date").lt("meeting_date",weekKey(currentDate))]);
+ const dates=qs.flatMap(q=>(q.data||[]).map(x=>x.meeting_date));renderArchive(archiveWeeksFromDates(dates))
+}
+function renderArchive(weeks){
+ const el=$("#archiveContent");
+ if(!weeks.length){el.innerHTML="<div class=\"archive-empty\">Er staan nog geen voorbije werkweken in het archief.</div>";$("#archiveDialog").showModal();return}
+ el.innerHTML=weeks.map(w=>"<button class=\"archive-week\" data-week=\""+w+"\"><span><strong>Week "+esc(formatWeek(w))+"</strong><small>"+w+"</small></span><span aria-hidden=\"true\">→</span></button>").join("");
+ $(".archive-week").forEach(b=>b.onclick=()=>{setDate(b.dataset.week);$("#archiveDialog").close()});$("#archiveDialog").showModal()
+}
+async function searchAll(term){
+ term=term.trim();if(!term)return;const q="%"+term.replace(/[%_]/g,"\\async function weekOverview(){")+"%";let results=[];
+ if(sb){const [d,r,s,a]=await Promise.all([sb.from("discussion_items").select("*").or("title.ilike."+q+",notes.ilike."+q),sb.from("reading_items").select("*").or("title.ilike."+q+",content.ilike."+q),sb.from("sync_items").select("*").or("colleague_name.ilike."+q+",reason.ilike."+q),sb.from("announcements").select("*").or("content.ilike."+q)]);
+  if(d.error||r.error||s.error||a.error){alert("Zoeken is tijdelijk niet gelukt.");return}
+  results=[...(d.data||[]).map(x=>({date:x.meeting_date,type:"Bespreken",text:x.title,detail:x.notes})),...(r.data||[]).map(x=>({date:x.meeting_date,type:"Lezen",text:x.title,detail:x.content})),...(s.data||[]).map(x=>({date:x.meeting_date,type:"1-op-1",text:x.colleague_name,detail:x.reason})),...(a.data||[]).map(x=>({date:x.meeting_date,type:"Mededeling",text:x.content,detail:labels[uiAudience[x.audience]]||"Iedereen"}))]
+ } else {Object.entries(demo).forEach(([k,items])=>{const [date,type]=k.split("::");(items||[]).forEach(x=>{if(JSON.stringify(x).toLowerCase().includes(term.toLowerCase()))results.push({date,type,text:x.text,detail:x.notes||x.reason||""})})})}
+ results.sort((a,b)=>b.date.localeCompare(a.date));const el=$("#searchContent");
+ el.innerHTML=results.length?"<p class=\"search-summary\">"+results.length+" resultaat/resultaten voor <strong>"+esc(term)+"</strong></p>"+results.map(r=>"<button class=\"search-result\" data-date=\""+esc(r.date)+"\"><span class=\"search-result-type\">"+esc(r.type)+"</span><strong>"+esc(r.text)+"</strong><small>"+esc(formatDate(r.date))+(r.detail?" · "+esc(r.detail):"")+"</small></button>").join(""):"<div class=\"archive-empty\">Geen resultaten gevonden.</div>";
+ $(".search-result").forEach(b=>b.onclick=()=>{setDate(b.dataset.date);$("#searchDialog").close()});$("#searchDialog").showModal()
+}
 async function weekOverview(){const base=new Date(currentDate+'T12:00:00');const day=(base.getDay()+6)%7;base.setDate(base.getDate()-day);const rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);const ds=d.toISOString().slice(0,10);const [a,b,c,n]=await Promise.all([loadItems('discuss',ds),loadItems('read',ds),loadItems('sync',ds),loadAnnouncements(ds)]);rows.push({ds,a,b,c,n})}$('#weekContent').innerHTML=rows.map(x=>`<div class="week-day"><h3>${esc(formatDate(x.ds))}</h3><div class="week-grid"><span>Bespreken <b>${x.a.length}</b></span><span>Lezen <b>${x.b.length}</b></span><span>1-op-1 <b>${x.c.length}</b></span><span>Leerlingen <b>${x.n.length}</b></span></div>${x.a.map(i=>`<div class="week-item ${i.discussed?'done':''}">${i.discussed?'✓ ':''}${esc(i.text)}${i.notes?`<small>${esc(i.notes)}</small>`:''}</div>`).join('')}</div>`).join('');$('#weekDialog').showModal()}
 $$('.add-form').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();const input=f.querySelector('input');const text=input.value.trim();if(text){addItem(f.dataset.type,text);input.value=''}}));
 $('#announcementForm').addEventListener('submit',e=>{e.preventDefault();const input=$('#announcementInput');const text=input.value.trim();if(text){addAnnouncement(text,$('#announcementGrade').value);input.value=''}});
 $$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentGrade=t.dataset.grade;render()});
-$('#datePicker').onchange=e=>setDate(e.target.value);$('#prevDay').onclick=()=>moveDay(-1);$('#nextDay').onclick=()=>moveDay(1);$('#todayBtn').onclick=()=>setDate(localDate());function moveDay(n){const d=new Date(currentDate+'T12:00:00');d.setDate(d.getDate()+n);setDate(d.toISOString().slice(0,10))}
+$('#datePicker').onchange=e=>setDate(e.target.value);$('#prevDay').onclick=()=>moveDay(-1);$('#nextDay').onclick=()=>moveDay(1);$('#todayBtn').onclick=()=>setDate(localDate());function moveDay(n){const d=dateObj(currentDate);d.setDate(d.getDate()+n);if(d.getDay()===0)d.setDate(d.getDate()+(n>0?1:-2));if(d.getDay()===6)d.setDate(d.getDate()+(n>0?2:-1));setDate(dateString(d))}
 $('#loginBtn').onclick=async()=>{await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}})};$('#logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload()};$('#weekBtn').onclick=weekOverview;$('#closeWeek').onclick=()=>$('#weekDialog').close();$('#weekDialog').addEventListener('click',e=>{if(e.target===$('#weekDialog'))$('#weekDialog').close()});
 $('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);refreshAuth();render();sb.auth.onAuthStateChange(()=>refreshAuth());subscribe();
 </script>
