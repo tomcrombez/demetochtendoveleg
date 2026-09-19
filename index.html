@@ -20,6 +20,22 @@
     </div>
     <div class="hero-tools"><div class="hero-tool-row"><button id="weekBtn" class="secondary week-button"><span aria-hidden="true">▦</span> Weekoverzicht</button><button id="archiveBtn" class="secondary"><span aria-hidden="true">🗂</span> Archief</button></div><form id="searchForm" class="search-form" role="search"><input id="searchInput" type="search" placeholder="Zoek in alle overleginfo…" aria-label="Zoek in alle overleginfo"><button class="primary" type="submit">Zoeken</button></form></div>
   </section>
+  <section class="card checkin-card">
+    <div class="checkin-main">
+      <div class="checkin-badge" aria-hidden="true">☀</div>
+      <div>
+        <span class="tag checkin-tag">CHECK-IN</span>
+        <h3>Vraag van de dag</h3>
+        <p id="checkinQuestion" class="checkin-question">Even landen: hoe zit je erbij vandaag?</p>
+        <p id="checkinSource" class="muted small">Voorgestelde vraag voor vandaag</p>
+      </div>
+    </div>
+    <form id="checkinForm" class="checkin-form">
+      <input id="checkinInput" maxlength="240" placeholder="Of geef zelf een check-invraag in…">
+      <button class="secondary" type="submit">Vraag opslaan</button>
+      <button id="resetCheckin" class="secondary" type="button">Voorgestelde vraag</button>
+    </form>
+  </section>
   <div id="loginNotice" class="notice">Log in met je Google-account om als team te werken. Zonder login kun je de demo lokaal uitproberen.</div>
 
   <section class="grid three">
@@ -65,11 +81,70 @@ function setDate(d){currentDate=d;$('#datePicker').value=d;$('#dayTitle').textCo
 async function getUser(){return (await sb.auth.getUser()).data.user}
 async function requireLogin(){const u=await getUser();if(!u){alert('Log eerst in met je Google-account.');return false}return true}
 const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items'};
+const CHECKIN_SENTINEL='__OCHTENDKRING_CHECKIN__';
+const checkinSuggestions=[
+  'Wat geeft je vandaag energie?',
+  'Waar kijk je vandaag het meest naar uit?',
+  'Met welk gevoel begin je aan deze dag?',
+  'Wat heb je vandaag nodig om goed te kunnen werken?',
+  'Wat was een klein succes van gisteren?',
+  'Wat wil je vandaag zeker voor elkaar krijgen?',
+  'Waar kunnen we je vandaag mee helpen?',
+  'Welke leerling of collega verdient vandaag wat extra aandacht?',
+  'Wat maakt vandaag voor jou een goede dag?',
+  'Als je vandaag één ding mag veranderen, wat zou dat zijn?',
+  'Wat neem je mee uit de voorbije week?',
+  'Waar wil je vandaag met een open blik naar kijken?',
+  'Wat zorgt ervoor dat je vandaag met goesting start?',
+  'Welke kleine stap wil je vandaag zetten?',
+  'Wat wil je vandaag graag even kwijt?',
+  'Wat heb je nodig van het team?',
+  'Wat is iets waar je vandaag dankbaar voor bent?',
+  'Welke afspraak wil je vandaag zeker bewaken?',
+  'Wat zou vandaag net iets gemakkelijker maken?',
+  'Met welk woord zou je je ochtend omschrijven?'
+];
 async function loadItems(type,date=currentDate){
   if(!sb)return demo[key(date,type)]||[];
   if(type==='discuss'){const {data,error}=await sb.from('discussion_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.title,discussed:x.is_discussed,author_name:''}));}
-  if(type==='read'){const {data,error}=await sb.from('reading_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.title,author_name:''}));}
-  const {data,error}=await sb.from('sync_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.colleague_name+(x.reason?' · '+x.reason:''),discussed:x.is_done,author_name:''}));
+  if(type==='read'){const {data,error}=await sb.from('reading_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).filter(x=>x.title!==CHECKIN_SENTINEL).map(x=>({...x,text:x.title,author_name:''}));}
+  const {data,error}=await sb.from('sync_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.reason?x.colleague_name+' · '+x.reason:x.colleague_name,discussed:x.is_done,author_name:''}));
+}
+function suggestedCheckin(date=currentDate){return checkinSuggestions[Math.abs([...date].reduce((n,c)=>n+c.charCodeAt(0),0))%checkinSuggestions.length]}
+async function loadCheckin(date=currentDate){
+  const fallback={question:suggestedCheckin(date),custom:false};
+  if(!sb)return {...fallback,question:demo[key(date,'checkin')]||fallback.question,custom:!!demo[key(date,'checkin')]};
+  const {data,error}=await sb.from('reading_items').select('id,content,created_at').eq('meeting_date',date).eq('title',CHECKIN_SENTINEL).order('created_at',{ascending:false}).limit(1);
+  if(error)throw error;
+  return data?.[0]?{question:data[0].content,custom:true,id:data[0].id}:fallback;
+}
+async function saveCheckin(question){
+  if(!await requireLogin())return;
+  const q=question.trim();if(!q)return;
+  const u=await getUser();
+  if(!sb){demo[key(currentDate,'checkin')]=q;saveDemo();return renderCheckin()}
+  const {data,error}=await sb.from('reading_items').select('id').eq('meeting_date',currentDate).eq('title',CHECKIN_SENTINEL).limit(1);
+  if(error){alert(error.message);return}
+  if(data?.[0]){
+    const r=await sb.from('reading_items').update({content:q,created_by:u.id}).eq('id',data[0].id);
+    if(r.error)alert(r.error.message);
+  }else{
+    const r=await sb.from('reading_items').insert({meeting_date:currentDate,title:CHECKIN_SENTINEL,content:q,created_by:u.id});
+    if(r.error)alert(r.error.message);
+  }
+  await renderCheckin();
+}
+async function resetCheckin(){
+  if(!await requireLogin())return;
+  if(!sb){delete demo[key(currentDate,'checkin')];saveDemo();return renderCheckin()}
+  const {error}=await sb.from('reading_items').delete().eq('meeting_date',currentDate).eq('title',CHECKIN_SENTINEL);
+  if(error)alert(error.message);else await renderCheckin();
+}
+async function renderCheckin(){
+  const c=await loadCheckin(currentDate);
+  $('#checkinQuestion').textContent=c.question;
+  $('#checkinSource').textContent=c.custom?'Eigen vraag van het team':'Voorgestelde vraag voor vandaag';
+  $('#checkinInput').value=c.custom?c.question:'';
 }
 async function loadAnnouncements(date=currentDate){if(!sb)return demo[key(date,'announcement')]||[];const {data,error}=await sb.from('announcements').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.content,grade:uiAudience[x.audience]||'all',author_name:''}));}
 async function addItem(type,text){
@@ -78,7 +153,12 @@ async function addItem(type,text){
   let table=tableFor[type], payload={meeting_date:currentDate,created_by:u.id};
   if(type==='discuss')Object.assign(payload,{title:text,notes:'',is_discussed:false});
   if(type==='read')Object.assign(payload,{title:text,content:''});
-  if(type==='sync')Object.assign(payload,{colleague_name:text,reason:'',is_done:false});
+  if(type==='sync'){
+  const meta=u.user_metadata||{};
+  const fullName=meta.full_name||meta.name||'';
+  const firstName=meta.given_name||meta.first_name||(fullName?fullName.trim().split(/\s+/)[0]:'')||'Collega';
+  Object.assign(payload,{colleague_name:firstName,reason:text,is_done:false});
+}
   const {error}=await sb.from(table).insert(payload);if(error)alert(error.message);else render();
 }
 async function deleteItem(type,id){if(!await requireLogin())return;if(!sb){const k=key(currentDate,type);demo[k]=(demo[k]||[]).filter(x=>x.id!==id);saveDemo();return render()}const {error}=await sb.from(tableFor[type]).delete().eq('id',id);if(error)alert(error.message);else render()}
@@ -116,7 +196,40 @@ function renderArchive(weeks){
  $(".archive-week").forEach(b=>b.onclick=()=>{setDate(b.dataset.week);$("#archiveDialog").close()});$("#archiveDialog").showModal()
 }
 async function searchAll(term){
- term=term.trim();if(!term)return;const q="%"+term.replace(/[%_]/g,"\\async function weekOverview(){")+"%";let results=[];
+  term=term.trim();if(!term)return;
+  const pattern='%'+term.replace(/%/g,'\\%').replace(/_/g,'\\_')+'%';
+  let results=[];
+  if(sb){
+    const [d1,d2,r1,r2,s1,s2,a]=await Promise.all([
+      sb.from("discussion_items").select("*").ilike("title",pattern),
+      sb.from("discussion_items").select("*").ilike("notes",pattern),
+      sb.from("reading_items").select("*").neq("title",CHECKIN_SENTINEL).ilike("title",pattern),
+      sb.from("reading_items").select("*").neq("title",CHECKIN_SENTINEL).ilike("content",pattern),
+      sb.from("sync_items").select("*").ilike("colleague_name",pattern),
+      sb.from("sync_items").select("*").ilike("reason",pattern),
+      sb.from("announcements").select("*").ilike("content",pattern)
+    ]);
+    if(d1.error||d2.error||r1.error||r2.error||s1.error||s2.error||a.error){console.error(d1.error,d2.error,r1.error,r2.error,s1.error,s2.error,a.error);alert("Zoeken is tijdelijk niet gelukt.");return}
+    const merge=(one,two)=>[...(one.data||[]),...(two.data||[]).filter(y=>!(one.data||[]).some(x=>x.id===y.id))];
+    results=[
+      ...merge(d1,d2).map(x=>({date:x.meeting_date,type:"Bespreken",text:x.title,detail:x.notes})),
+      ...merge(r1,r2).map(x=>({date:x.meeting_date,type:"Lezen",text:x.title,detail:x.content})),
+      ...merge(s1,s2).map(x=>({date:x.meeting_date,type:"1-op-1",text:x.colleague_name,detail:x.reason})),
+      ...(a.data||[]).map(x=>({date:x.meeting_date,type:"Mededeling",text:x.content,detail:labels[uiAudience[x.audience]]||"Iedereen"}))
+    ];
+  } else {
+    Object.entries(demo).forEach(([k,items])=>{const [date,type]=k.split("::");(items||[]).forEach(x=>{if(JSON.stringify(x).toLowerCase().includes(term.toLowerCase()))results.push({date,type,text:x.text,detail:x.notes||x.reason||""})})});
+  }
+  results.sort((a,b)=>b.date.localeCompare(a.date));
+  const el=$("#searchContent");
+  el.innerHTML=results.length
+    ? "<p class=\"search-summary\">"+results.length+" resultaat/resultaten voor <strong>"+esc(term)+"</strong></p>"+results.map(r=>"<button class=\"search-result\" data-date=\""+esc(r.date)+"\"><span class=\"search-result-type\">"+esc(r.type)+"</span><strong>"+esc(r.text)+"</strong><small>"+esc(formatDate(r.date))+(r.detail?" · "+esc(r.detail):"")+"</small></button>").join("")
+    : "<div class=\"archive-empty\">Geen resultaten gevonden.</div>";
+  $(".search-result").forEach(b=>b.onclick=()=>{setDate(b.dataset.date);$("#searchDialog").close()});
+  $("#searchDialog").showModal()
+}
+
+async function weekOverview(){")+"%";let results=[];
  if(sb){const [d,r,s,a]=await Promise.all([sb.from("discussion_items").select("*").or("title.ilike."+q+",notes.ilike."+q),sb.from("reading_items").select("*").or("title.ilike."+q+",content.ilike."+q),sb.from("sync_items").select("*").or("colleague_name.ilike."+q+",reason.ilike."+q),sb.from("announcements").select("*").or("content.ilike."+q)]);
   if(d.error||r.error||s.error||a.error){alert("Zoeken is tijdelijk niet gelukt.");return}
   results=[...(d.data||[]).map(x=>({date:x.meeting_date,type:"Bespreken",text:x.title,detail:x.notes})),...(r.data||[]).map(x=>({date:x.meeting_date,type:"Lezen",text:x.title,detail:x.content})),...(s.data||[]).map(x=>({date:x.meeting_date,type:"1-op-1",text:x.colleague_name,detail:x.reason})),...(a.data||[]).map(x=>({date:x.meeting_date,type:"Mededeling",text:x.content,detail:labels[uiAudience[x.audience]]||"Iedereen"}))]
@@ -127,10 +240,18 @@ async function searchAll(term){
 }
 async function weekOverview(){const base=new Date(currentDate+'T12:00:00');const day=(base.getDay()+6)%7;base.setDate(base.getDate()-day);const rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);const ds=d.toISOString().slice(0,10);const [a,b,c,n]=await Promise.all([loadItems('discuss',ds),loadItems('read',ds),loadItems('sync',ds),loadAnnouncements(ds)]);rows.push({ds,a,b,c,n})}$('#weekContent').innerHTML=rows.map(x=>`<div class="week-day"><h3>${esc(formatDate(x.ds))}</h3><div class="week-grid"><span>Bespreken <b>${x.a.length}</b></span><span>Lezen <b>${x.b.length}</b></span><span>1-op-1 <b>${x.c.length}</b></span><span>Leerlingen <b>${x.n.length}</b></span></div>${x.a.map(i=>`<div class="week-item ${i.discussed?'done':''}">${i.discussed?'✓ ':''}${esc(i.text)}${i.notes?`<small>${esc(i.notes)}</small>`:''}</div>`).join('')}</div>`).join('');$('#weekDialog').showModal()}
 $$('.add-form').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();const input=f.querySelector('input');const text=input.value.trim();if(text){addItem(f.dataset.type,text);input.value=''}}));
+$('#checkinForm').addEventListener('submit',e=>{e.preventDefault();saveCheckin($('#checkinInput').value)});
+$('#resetCheckin').onclick=resetCheckin;
 $('#announcementForm').addEventListener('submit',e=>{e.preventDefault();const input=$('#announcementInput');const text=input.value.trim();if(text){addAnnouncement(text,$('#announcementGrade').value);input.value=''}});
 $$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentGrade=t.dataset.grade;render()});
 $('#datePicker').onchange=e=>setDate(e.target.value);$('#prevDay').onclick=()=>moveDay(-1);$('#nextDay').onclick=()=>moveDay(1);$('#todayBtn').onclick=()=>setDate(localDate());function moveDay(n){const d=dateObj(currentDate);d.setDate(d.getDate()+n);if(d.getDay()===0)d.setDate(d.getDate()+(n>0?1:-2));if(d.getDay()===6)d.setDate(d.getDate()+(n>0?2:-1));setDate(dateString(d))}
-$('#loginBtn').onclick=async()=>{await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}})};$('#logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload()};$('#weekBtn').onclick=weekOverview;$('#closeWeek').onclick=()=>$('#weekDialog').close();$('#weekDialog').addEventListener('click',e=>{if(e.target===$('#weekDialog'))$('#weekDialog').close()});
-$('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);refreshAuth();render();sb.auth.onAuthStateChange(()=>refreshAuth());subscribe();
+$('#loginBtn').onclick=async()=>{await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}})};$('#logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload()};$('#weekBtn').onclick=weekOverview;
+$('#searchForm').addEventListener('submit',e=>{e.preventDefault();searchAll($('#searchInput').value)});
+$('#closeSearch').onclick=()=>$('#searchDialog').close();
+$('#searchDialog').addEventListener('click',e=>{if(e.target===$('#searchDialog'))$('#searchDialog').close()});
+$('#archiveBtn').onclick=archiveOverview;
+$('#closeArchive').onclick=()=>$('#archiveDialog').close();
+$('#archiveDialog').addEventListener('click',e=>{if(e.target===$('#archiveDialog'))$('#archiveDialog').close()});$('#closeWeek').onclick=()=>$('#weekDialog').close();$('#weekDialog').addEventListener('click',e=>{if(e.target===$('#weekDialog'))$('#weekDialog').close()});
+$('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);refreshAuth();render();renderCheckin();sb.auth.onAuthStateChange(()=>refreshAuth());subscribe();
 </script>
 </body></html>
