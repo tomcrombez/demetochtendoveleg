@@ -10,12 +10,27 @@
   function installGoogleLogin(){
     const btn=document.getElementById('loginBtn');
     if(!btn)return;
-    btn.onclick=function(){
+    btn.onclick=async function(){
       btn.disabled=true;
       btn.textContent='Doorsturen…';
-      const redirectTo=window.location.origin+window.location.pathname;
-      const authUrl='https://krarqagmjrbvsvlcbdwd.supabase.co/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(redirectTo);
-      window.location.href=authUrl;
+      try{
+        const client=window.supabase.createClient(
+          'https://krarqagmjrbvsvlcbdwd.supabase.co',
+          'sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg'
+        );
+        const {error}=await client.auth.signInWithOAuth({
+          provider:'google',
+          options:{
+            redirectTo:window.location.origin+window.location.pathname
+          }
+        });
+        if(error)throw error;
+      }catch(error){
+        console.error('Google login error:',error);
+        btn.disabled=false;
+        btn.textContent='Inloggen met Google';
+        alert('Inloggen via Google is niet gelukt: '+(error.message||error));
+      }
     };
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installGoogleLogin);
@@ -257,13 +272,13 @@ $('#resetCheckin').onclick=resetCheckin;
 $('#announcementForm').addEventListener('submit',e=>{e.preventDefault();const input=$('#announcementInput');const text=input.value.trim();if(text){addAnnouncement(text,$('#announcementGrade').value);input.value=''}});
 $$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentGrade=t.dataset.grade;render()});
 $('#datePicker').onchange=e=>setDate(e.target.value);$('#prevDay').onclick=()=>moveDay(-1);$('#nextDay').onclick=()=>moveDay(1);$('#todayBtn').onclick=()=>setDate(localDate());function moveDay(n){const d=dateObj(currentDate);d.setDate(d.getDate()+n);if(d.getDay()===0)d.setDate(d.getDate()+(n>0?1:-2));if(d.getDay()===6)d.setDate(d.getDate()+(n>0?2:-1));setDate(dateString(d))}
-$('#loginBtn').onclick=()=>{const btn=$('#loginBtn');btn.disabled=true;btn.textContent='Doorsturen…';const redirectTo=location.origin+location.pathname;const authUrl=SUPABASE_URL+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(redirectTo);window.location.assign(authUrl)};$('#logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload()};$('#weekBtn').onclick=weekOverview;
+$('#loginBtn').onclick=async()=>{const btn=$('#loginBtn');btn.disabled=true;btn.textContent='Doorsturen…';const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});if(error){console.error(error);btn.disabled=false;btn.textContent='Inloggen met Google';alert('Inloggen via Google is niet gelukt: '+error.message)}};$('#logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload()};$('#weekBtn').onclick=weekOverview;
 $('#searchForm').addEventListener('submit',e=>{e.preventDefault();searchAll($('#searchInput').value)});
 $('#closeSearch').onclick=()=>$('#searchDialog').close();
 $('#searchDialog').addEventListener('click',e=>{if(e.target===$('#searchDialog'))$('#searchDialog').close()});
 $('#archiveBtn').onclick=archiveOverview;
 $('#closeArchive').onclick=()=>$('#archiveDialog').close();
 $('#archiveDialog').addEventListener('click',e=>{if(e.target===$('#archiveDialog'))$('#archiveDialog').close()});$('#closeWeek').onclick=()=>$('#weekDialog').close();$('#weekDialog').addEventListener('click',e=>{if(e.target===$('#weekDialog'))$('#weekDialog').close()});
-$('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);refreshAuth();render();renderCheckin();sb.auth.onAuthStateChange(()=>refreshAuth());subscribe();
+$('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);sb.auth.getSession().then(()=>refreshAuth()).catch(console.error);render();renderCheckin();sb.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN'||event==='INITIAL_SESSION'||event==='SIGNED_OUT')refreshAuth()});subscribe();
 </script>
 </body></html>
