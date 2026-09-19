@@ -248,16 +248,22 @@ h3 { margin: 3px 0 0; font-size: 18px; letter-spacing: -.025em; }
 .search-result-type{display:inline-block;margin-bottom:4px;padding:3px 7px;border-radius:999px;background:var(--met-soft);color:var(--met-dark);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;}
 @media (max-width:700px){.hero-tools{width:100%;min-width:0}.hero-tool-row{justify-content:stretch}.hero-tool-row .secondary{flex:1}.search-form{grid-template-columns:1fr}.search-form .primary{width:100%;}}
 
-.checkin-card{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:18px;padding:20px 24px;background:linear-gradient(110deg,#fff,#f5fbf8);border-left:5px solid var(--met);}
+.checkin-card{display:flex;align-items:center;justify-content:space-between;gap:28px;margin-top:18px;padding:22px 24px;background:linear-gradient(110deg,#fff,#f5fbf8);border-left:5px solid var(--met);}
 .checkin-main{display:flex;align-items:flex-start;gap:13px;min-width:0;}
+.checkin-copy{min-width:0;}
 .checkin-badge{display:grid;place-items:center;flex:0 0 auto;width:40px;height:40px;border-radius:13px;background:var(--met-soft);color:var(--met);font-size:21px;}
 .checkin-tag{color:var(--met);}
-.checkin-question{margin:4px 0 0;font-size:17px;font-weight:750;line-height:1.35;}
-.checkin-form{display:grid;grid-template-columns:minmax(190px,1fr) auto auto;gap:8px;min-width:min(610px,55%);}
+.checkin-question{margin:5px 0 0;font-size:18px;font-weight:750;line-height:1.4;}
+.checkin-actions{display:flex;align-items:center;justify-content:flex-end;min-width:min(620px,48%);}
+.checkin-edit{white-space:nowrap;}
+.checkin-form{width:100%;}
+.checkin-form>label{display:block;margin-bottom:7px;color:var(--muted);font-size:12px;font-weight:750;}
+.checkin-form-row{display:grid;grid-template-columns:minmax(170px,1fr) auto auto;gap:8px;}
 .checkin-form input{min-width:0;min-height:42px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);}
 .checkin-form input:focus{border-color:var(--met);outline:0;box-shadow:0 0 0 3px rgba(12,113,101,.12);}
-@media(max-width:900px){.checkin-card{align-items:stretch;flex-direction:column}.checkin-form{min-width:0;width:100%;}}
+.checkin-form .primary,.checkin-form .secondary{white-space:nowrap;}
+@media(max-width:900px){.checkin-card{align-items:stretch;flex-direction:column}.checkin-actions{width:100%;min-width:0}.checkin-form{width:100%;}}
 .sync-form{display:grid;grid-template-columns:minmax(130px,.8fr) minmax(150px,1.2fr) 42px;gap:8px;}
 .sync-form input{min-width:0;}
 @media(max-width:900px){.sync-form{grid-template-columns:1fr 1fr 42px;}}
-@media(max-width:700px){.sync-form{grid-template-columns:1fr;}.sync-form button{width:100%;min-height:42px;}.checkin-form{grid-template-columns:1fr}.checkin-form button{width:100%;}.checkin-question{font-size:15px;}}
+@media(max-width:700px){.sync-form{grid-template-columns:1fr;}.sync-form button{width:100%;min-height:42px;}.checkin-form-row{grid-template-columns:1fr}.checkin-form-row button{width:100%;}.checkin-question{font-size:16px;}}
