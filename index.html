@@ -69,7 +69,7 @@
 <script>
 const SUPABASE_URL='https://krarqagmjrbvsvlcbdwd.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true,skipAutoInitialize:true}});
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{flowType:'implicit',detectSessionInUrl:false,persistSession:true,autoRefreshToken:true,skipAutoInitialize:true}});
 let currentDate=initialDate(); let currentGrade='all'; let demo=JSON.parse(localStorage.getItem('ochtendkring_demo')||'{}'); let channel=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const labels={all:'Iedereen',first:'1e graad',second:'2e graad',third:'3e graad'};
@@ -84,6 +84,20 @@ function key(d,t){return `${d}::${t}`} function uid(){return crypto.randomUUID?c
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function formatDate(d){return new Intl.DateTimeFormat('nl-BE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(d+'T12:00:00'))}
 function setDate(d){currentDate=d;$('#datePicker').value=d;$('#dayTitle').textContent=formatDate(d);render()}
+async function restoreOAuthHash(){
+  const hash=window.location.hash;
+  if(!hash.includes('access_token=')||!hash.includes('refresh_token='))return false;
+  try{
+    const p=new URLSearchParams(hash.slice(1));
+    const access_token=p.get('access_token');
+    const refresh_token=p.get('refresh_token');
+    if(!access_token||!refresh_token)return false;
+    const {error}=await sb.auth.setSession({access_token,refresh_token});
+    if(error){console.error('OAuth session restore error:',error);return false}
+    history.replaceState(null,'',window.location.pathname+window.location.search);
+    return true;
+  }catch(e){console.error('OAuth hash error:',e);return false}
+}
 async function getUser(){return (await sb.auth.getUser()).data.user}
 async function requireLogin(){const u=await getUser();if(!u){alert('Log eerst in met je Google-account.');return false}return true}
 const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items'};
@@ -249,10 +263,13 @@ $('#closeArchive').onclick=()=>$('#archiveDialog').close();
 $('#archiveDialog').addEventListener('click',e=>{if(e.target===$('#archiveDialog'))$('#archiveDialog').close()});$('#closeWeek').onclick=()=>$('#weekDialog').close();$('#weekDialog').addEventListener('click',e=>{if(e.target===$('#weekDialog'))$('#weekDialog').close()});
 $('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);
 (async()=>{
-  try{
-    const {error}=await sb.auth.initialize();
-    if(error)console.error('Auth initialization error:',error);
-  }catch(e){console.error('Auth initialization exception:',e)}
+  const restored=await restoreOAuthHash();
+  if(!restored){
+    try{
+      const {error}=await sb.auth.initialize();
+      if(error)console.error('Auth initialization error:',error);
+    }catch(e){console.error('Auth initialization exception:',e)}
+  }
   await refreshAuth();
   await render();
   await renderCheckin();
