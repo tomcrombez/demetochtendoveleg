@@ -257,4 +257,7 @@ h3 { margin: 3px 0 0; font-size: 18px; letter-spacing: -.025em; }
 .checkin-form input{min-width:0;min-height:42px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);}
 .checkin-form input:focus{border-color:var(--met);outline:0;box-shadow:0 0 0 3px rgba(12,113,101,.12);}
 @media(max-width:900px){.checkin-card{align-items:stretch;flex-direction:column}.checkin-form{min-width:0;width:100%;}}
-@media(max-width:700px){.checkin-form{grid-template-columns:1fr}.checkin-form button{width:100%;}.checkin-question{font-size:15px;}}
+.sync-form{display:grid;grid-template-columns:minmax(130px,.8fr) minmax(150px,1.2fr) 42px;gap:8px;}
+.sync-form input{min-width:0;}
+@media(max-width:900px){.sync-form{grid-template-columns:1fr 1fr 42px;}}
+@media(max-width:700px){.sync-form{grid-template-columns:1fr;}.sync-form button{width:100%;min-height:42px;}.checkin-form{grid-template-columns:1fr}.checkin-form button{width:100%;}.checkin-question{font-size:15px;}}
