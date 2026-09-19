@@ -326,7 +326,10 @@ $('#addSyncBtn').addEventListener('click',async()=>{
   const reason=f.querySelector('.sync-reason').value.trim();
   if(!person||!reason)return;
   const ok=await addItem('sync',person,reason);
-  if(ok)f.reset();
+  if(ok){
+    f.reset();
+    await render();
+  }
 });
 $('.add-form:not(.sync-form)').forEach(f=>f.addEventListener('submit',async e=>{
   e.preventDefault();
