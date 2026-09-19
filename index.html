@@ -111,7 +111,13 @@ function formatDate(d){return new Intl.DateTimeFormat('nl-BE',{weekday:'long',da
 function setDate(d){currentDate=d;$('#datePicker').value=d;$('#dayTitle').textContent=formatDate(d);render()}
 async function getUser(){
   if(forcedLoggedOut)return null;
-  try{return (await sb.auth.getUser()).data.user}catch(error){return null}
+  try{
+    const {data}=await sb.auth.getSession();
+    return data?.session?.user||null;
+  }catch(error){
+    console.warn('Session ophalen mislukt:',error);
+    return null;
+  }
 }
 async function requireLogin(){const u=await getUser();if(!u){alert('Log eerst in met je Google-account.');return false}return true}
 const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items'};
@@ -184,7 +190,9 @@ async function renderCheckin(){
 }
 async function loadAnnouncements(date=currentDate){if(!sb)return demo[key(date,'announcement')]||[];const {data,error}=await sb.from('announcements').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.content,grade:uiAudience[x.audience]||'all',author_name:''}));}
 async function addItem(type,text,extra=''){
-  if(!await requireLogin())return; const u=await getUser();
+  if(!await requireLogin())return;
+  const u=await getUser();
+  if(!u){alert('Je sessie is niet beschikbaar. Log opnieuw in.');return;}
   if(!sb){const k=key(currentDate,type);demo[k]=[...(demo[k]||[]),{id:uid(),text:type==='sync'?(text+' · '+extra):text,colleague_name:type==='sync'?text:'',reason:type==='sync'?extra:'',discussed:false,notes:'',created_at:new Date().toISOString(),author_name:'Demo'}];saveDemo();return render()}
   let table=tableFor[type], payload={meeting_date:currentDate,created_by:u.id};
   if(type==='discuss')Object.assign(payload,{title:text,notes:'',is_discussed:false});
