@@ -179,9 +179,9 @@ const sb=(()=>{
       signInWithOAuth:async({provider,options={}})=>{
         try{
           const bytes=new Uint8Array(32);crypto.getRandomValues(bytes);
-          const verifier=btoa(String.fromCharCode(...bytes)).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')+btoa(String.fromCharCode(...bytes)).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+          const verifier=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')+btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
           const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier));
-          const challenge=btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+          const challenge=btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
           localStorage.setItem(PKCE_STORE,verifier);
           const redirectTo=options.redirectTo||location.origin+location.pathname;
           location.href=SUPABASE_URL+'/auth/v1/authorize?provider='+encodeURIComponent(provider)+'&redirect_to='+encodeURIComponent(redirectTo)+'&code_challenge='+encodeURIComponent(challenge)+'&code_challenge_method=S256';
