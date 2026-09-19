@@ -325,8 +325,24 @@ window.addSyncItem=async function(){
   const person=f.querySelector('.sync-person').value.trim();
   const reason=f.querySelector('.sync-reason').value.trim();
   if(!person||!reason){alert('Vul zowel de naam als het onderwerp in.');return}
-  const ok=await addItem('sync',person,reason);
-  if(ok)f.reset();
+  try{
+    const {data,error:sessionError}=await sb.auth.getSession();
+    const u=data?.session?.user;
+    if(sessionError||!u){alert('Je bent niet ingelogd.');return}
+    const {error}=await sb.from('sync_items').insert({
+      meeting_date:currentDate,
+      colleague_name:person,
+      reason:reason,
+      is_done:false,
+      created_by:u.id
+    });
+    if(error){console.error('1-op-1 insert',error);alert('Opslaan mislukt: '+error.message);return}
+    f.reset();
+    await render();
+  }catch(error){
+    console.error('1-op-1 actie',error);
+    alert('Er ging iets mis: '+(error.message||error));
+  }
 };
 $('.add-form:not(.sync-form)').forEach(f=>f.addEventListener('submit',async e=>{
   e.preventDefault();
