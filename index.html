@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ochtendkring · Teamruimte</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://unpkg.com/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <header class="topbar">
@@ -69,7 +69,7 @@
 <script>
 const SUPABASE_URL='https://krarqagmjrbvsvlcbdwd.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{flowType:'implicit',detectSessionInUrl:false,persistSession:true,autoRefreshToken:true,skipAutoInitialize:true}});
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}});
 let currentDate=initialDate(); let currentGrade='all'; let demo=JSON.parse(localStorage.getItem('ochtendkring_demo')||'{}'); let channel=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const labels={all:'Iedereen',first:'1e graad',second:'2e graad',third:'3e graad'};
@@ -84,29 +84,6 @@ function key(d,t){return `${d}::${t}`} function uid(){return crypto.randomUUID?c
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function formatDate(d){return new Intl.DateTimeFormat('nl-BE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(d+'T12:00:00'))}
 function setDate(d){currentDate=d;$('#datePicker').value=d;$('#dayTitle').textContent=formatDate(d);render()}
-async function restoreOAuthHash(){
-  const hash=window.location.hash||'';
-  if(!hash.includes('access_token='))return false;
-  try{
-    const p=new URLSearchParams(hash.slice(1));
-    const access_token=p.get('access_token');
-    const refresh_token=p.get('refresh_token');
-    if(!access_token){showAuthDebug('OAuth-fragment aanwezig, maar access token ontbreekt');return false}
-    const init=await sb.auth.initialize();
-    if(init.error){console.error('Auth initialize error:',init.error);showAuthDebug('initialize fout: '+(init.error.message||String(init.error)));return false}
-    const session=await sb.auth.setSession({access_token,refresh_token});
-    if(session.error){console.error('OAuth session restore error:',session.error);showAuthDebug('setSession fout: '+(session.error.message||String(session.error)));return false}
-    history.replaceState(null,'',window.location.pathname+window.location.search);
-    if(session.data?.session?.user?.email) showAuthDebug('Google-login gelukt: '+session.data.session.user.email);
-    else showAuthDebug('setSession uitgevoerd, maar geen sessie ontvangen');
-    return true;
-  }catch(e){console.error('OAuth hash error:',e);showAuthDebug('OAuth-fout: '+(e.message||String(e)));return false}
-}
-function showAuthDebug(message){
-  let el=document.getElementById('authDebug');
-  if(!el){el=document.createElement('div');el.id='authDebug';el.style='position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;padding:12px;background:#fff;border:2px solid #222;border-radius:8px;font:14px/1.4 Arial;box-shadow:0 4px 20px rgba(0,0,0,.2)';document.body.appendChild(el)}
-  el.textContent='LOGIN DEBUG — '+message;
-}
 async function getUser(){return (await sb.auth.getUser()).data.user}
 async function requireLogin(){const u=await getUser();if(!u){alert('Log eerst in met je Google-account.');return false}return true}
 const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items'};
@@ -272,17 +249,6 @@ $('#closeArchive').onclick=()=>$('#archiveDialog').close();
 $('#archiveDialog').addEventListener('click',e=>{if(e.target===$('#archiveDialog'))$('#archiveDialog').close()});$('#closeWeek').onclick=()=>$('#weekDialog').close();$('#weekDialog').addEventListener('click',e=>{if(e.target===$('#weekDialog'))$('#weekDialog').close()});
 $('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);
 (async()=>{
-  const restored=await restoreOAuthHash();
-  if(!restored){
-    try{
-      const {error}=await sb.auth.initialize();
-      if(error){console.error('Auth initialization error:',error);showAuthDebug('initialize fout: '+(error.message||String(error)))}
-    }catch(e){console.error('Auth initialization exception:',e);showAuthDebug('initialize uitzondering: '+(e.message||String(e)))}
-  }
-  const check=await sb.auth.getSession();
-  if(check.error)showAuthDebug('getSession fout: '+(check.error.message||String(check.error)));
-  else if(check.data?.session?.user?.email)showAuthDebug('Sessie gevonden: '+check.data.session.user.email);
-  else if(!restored)showAuthDebug('Geen actieve sessie gevonden');
   await refreshAuth();
   await render();
   await renderCheckin();
