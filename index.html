@@ -331,11 +331,11 @@ document.getElementById('logoutBtn').addEventListener('click',()=>{
   }
   window.location.replace(window.location.pathname+'?logout=1');
 });
-$('#weekBtn').onclick=weekOverview;
+document.getElementById('weekBtn').addEventListener('click',async(e)=>{e.preventDefault();try{await weekOverview()}catch(error){console.error('Weekoverzicht:',error);alert('Weekoverzicht kon niet worden geopend: '+(error.message||error));}});
 $('#searchForm').addEventListener('submit',e=>{e.preventDefault();searchAll($('#searchInput').value)});
 $('#closeSearch').onclick=()=>$('#searchDialog').close();
 $('#searchDialog').addEventListener('click',e=>{if(e.target===$('#searchDialog'))$('#searchDialog').close()});
-$('#archiveBtn').onclick=archiveOverview;
+document.getElementById('archiveBtn').addEventListener('click',async(e)=>{e.preventDefault();try{await archiveOverview()}catch(error){console.error('Archief:',error);alert('Archief kon niet worden geopend: '+(error.message||error));}});
 $('#closeArchive').onclick=()=>$('#archiveDialog').close();
 $('#archiveDialog').addEventListener('click',e=>{if(e.target===$('#archiveDialog'))$('#archiveDialog').close()});$('#closeWeek').onclick=()=>$('#weekDialog').close();$('#weekDialog').addEventListener('click',e=>{if(e.target===$('#weekDialog'))$('#weekDialog').close()});
 $('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);
