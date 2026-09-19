@@ -16,7 +16,8 @@
       try{
         const client=window.supabase.createClient(
           'https://krarqagmjrbvsvlcbdwd.supabase.co',
-          'sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg'
+          'sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg',
+          {auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true}}
         );
         const {error}=await client.auth.signInWithOAuth({
           provider:'google',
@@ -101,7 +102,7 @@
 <script>
 const SUPABASE_URL='https://krarqagmjrbvsvlcbdwd.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true}});
 let currentDate=initialDate(); let currentGrade='all'; let demo=JSON.parse(localStorage.getItem('ochtendkring_demo')||'{}'); let channel=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const labels={all:'Iedereen',first:'1e graad',second:'2e graad',third:'3e graad'};
