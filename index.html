@@ -344,36 +344,39 @@ async function searchAll(term){
 }
 
 async function weekOverview(){const base=new Date(currentDate+'T12:00:00');const day=(base.getDay()+6)%7;base.setDate(base.getDate()-day);const rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);const ds=d.toISOString().slice(0,10);const [a,b,c,n]=await Promise.all([loadItems('discuss',ds),loadItems('read',ds),loadItems('sync',ds),loadAnnouncements(ds)]);rows.push({ds,a,b,c,n})}$('#weekContent').innerHTML=rows.map(x=>`<button type="button" class="week-day" data-date="${esc(x.ds)}" aria-label="Ga naar ${esc(formatDate(x.ds))}"><h3>${esc(formatDate(x.ds))}</h3><div class="week-grid"><span>Bespreken <b>${x.a.length}</b></span><span>Lezen <b>${x.b.length}</b></span><span>1-op-1 <b>${x.c.length}</b></span><span>Leerlingen <b>${x.n.length}</b></span></div>${x.a.map(i=>`<div class="week-item ${i.discussed?'done':''}">${i.discussed?'✓ ':''}${esc(i.text)}${i.notes?`<small>${esc(i.notes)}</small>`:''}</div>`).join('')}</button>`).join('');$('.week-day').forEach(day=>day.onclick=()=>{setDate(day.dataset.date);$('#weekDialog').close()});$('#weekDialog').showModal()}
-$('.add-form:not(.sync-form)').forEach(f=>f.addEventListener('submit',e=>e.preventDefault()));
-window.addSyncItem=async function(){
-  const f=document.querySelector('.sync-form');
-  const person=f.querySelector('.sync-person').value.trim();
-  const reason=f.querySelector('.sync-reason').value.trim();
-  if(!person||!reason){alert('Vul zowel de naam als het onderwerp in.');return}
+async function saveNewItem(type,fields){
   try{
     const {data,error:sessionError}=await sb.auth.getSession();
     const u=data?.session?.user;
-    if(sessionError||!u){alert('Je bent niet ingelogd.');return}
-    const {error}=await sb.from('sync_items').insert({
-      meeting_date:currentDate,
-      colleague_name:person,
-      reason:reason,
-      is_done:false,
-      created_by:u.id
-    });
-    if(error){console.error('1-op-1 insert',error);alert('Opslaan mislukt: '+error.message);return}
-    f.reset();
+    if(sessionError||!u){alert('Je bent niet ingelogd.');return false}
+    let table=tableFor[type],payload={meeting_date:currentDate,created_by:u.id};
+    if(type==='discuss')Object.assign(payload,{title:fields.text,notes:'',is_discussed:false});
+    if(type==='read')Object.assign(payload,{title:fields.text,content:''});
+    if(type==='sync')Object.assign(payload,{colleague_name:fields.person,reason:fields.reason,is_done:false});
+    const {error}=await sb.from(table).insert(payload);
+    if(error){console.error('Item toevoegen mislukt',type,error);alert('Toevoegen mislukt: '+error.message);return false}
     await render();
+    return true;
   }catch(error){
-    console.error('1-op-1 actie',error);
-    alert('Er ging iets mis: '+(error.message||error));
+    console.error('Item toevoegen',type,error);
+    alert('Toevoegen mislukt: '+(error.message||error));
+    return false;
   }
-};
-$('.add-form:not(.sync-form)').forEach(f=>f.addEventListener('submit',async e=>{
+}
+document.querySelector('.sync-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const f=e.currentTarget;
+  const person=f.querySelector('.sync-person').value.trim();
+  const reason=f.querySelector('.sync-reason').value.trim();
+  if(!person||!reason){alert('Vul zowel de naam als het onderwerp in.');return}
+  if(await saveNewItem('sync',{person,reason}))f.reset();
+});
+document.querySelectorAll('.add-form:not(.sync-form)').forEach(f=>f.addEventListener('submit',async e=>{
   e.preventDefault();
   const input=f.querySelector('input');
   const text=input.value.trim();
-  if(text && await addItem(f.dataset.type,text))input.value='';
+  if(!text)return;
+  if(await saveNewItem(f.dataset.type,{text}))input.value='';
 }));
 $('#checkinForm').addEventListener('submit',e=>{e.preventDefault();saveCheckin($('#checkinInput').value)});
 $('#editCheckin').onclick=()=>{$('#checkinForm').classList.toggle('hidden');if(!$('#checkinForm').classList.contains('hidden'))$('#checkinInput').focus()};
