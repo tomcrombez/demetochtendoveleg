@@ -70,6 +70,20 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
+const FORCE_LOGOUT=new URLSearchParams(location.search).has('logout');
+if(FORCE_LOGOUT){
+  try{
+    for(let i=localStorage.length-1;i>=0;i--){
+      const k=localStorage.key(i);
+      if(k && k.startsWith('sb-')) localStorage.removeItem(k);
+    }
+    for(let i=sessionStorage.length-1;i>=0;i--){
+      const k=sessionStorage.key(i);
+      if(k && k.startsWith('sb-')) sessionStorage.removeItem(k);
+    }
+  }catch(error){}
+  history.replaceState({},'',location.pathname);
+}
 const SUPABASE_URL='https://krarqagmjrbvsvlcbdwd.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
@@ -290,6 +304,7 @@ $('#announcementForm').addEventListener('submit',e=>{e.preventDefault();const in
 $$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentGrade=t.dataset.grade;render()});
 $('#datePicker').onchange=e=>setDate(e.target.value);$('#prevDay').onclick=()=>moveDay(-1);$('#nextDay').onclick=()=>moveDay(1);$('#todayBtn').onclick=()=>setDate(localDate());function moveDay(n){const d=dateObj(currentDate);d.setDate(d.getDate()+n);if(d.getDay()===0)d.setDate(d.getDate()+(n>0?1:-2));if(d.getDay()===6)d.setDate(d.getDate()+(n>0?2:-1));setDate(dateString(d))}
 document.getElementById('logoutBtn').addEventListener('click',()=>{
+  // Use a one-time logout URL so storage is cleared BEFORE Supabase initializes again.
   try{
     for(let i=localStorage.length-1;i>=0;i--){
       const k=localStorage.key(i);
@@ -299,8 +314,11 @@ document.getElementById('logoutBtn').addEventListener('click',()=>{
       const k=sessionStorage.key(i);
       if(k && k.startsWith('sb-')) sessionStorage.removeItem(k);
     }
-  }catch(error){console.warn('Local logout cleanup:',error)}
-  window.location.reload();
+  }catch(error){}
+  if(window.google?.accounts?.id){
+    try{google.accounts.id.disableAutoSelect();}catch(error){}
+  }
+  window.location.replace(window.location.pathname+'?logout=1');
 });
 $('#weekBtn').onclick=weekOverview;
 $('#searchForm').addEventListener('submit',e=>{e.preventDefault();searchAll($('#searchInput').value)});
