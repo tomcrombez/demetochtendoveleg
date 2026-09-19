@@ -214,8 +214,7 @@ function initGoogleSignIn(){
   google.accounts.id.initialize({
     client_id:'742879413523-9e3rdaehe1qmct4tpjajv7r48q071i64.apps.googleusercontent.com',
     callback:handleGoogleCredential,
-    ux_mode:'popup',
-    use_fedcm_for_button:true
+    ux_mode:'popup'
   });
   const el=document.getElementById('googleSignIn');
   if(el){
