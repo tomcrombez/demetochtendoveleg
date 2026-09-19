@@ -190,15 +190,25 @@ async function renderCheckin(){
 }
 async function loadAnnouncements(date=currentDate){if(!sb)return demo[key(date,'announcement')]||[];const {data,error}=await sb.from('announcements').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.content,grade:uiAudience[x.audience]||'all',author_name:''}));}
 async function addItem(type,text,extra=''){
-  if(!await requireLogin())return;
-  const u=await getUser();
-  if(!u){alert('Je sessie is niet beschikbaar. Log opnieuw in.');return;}
-  if(!sb){const k=key(currentDate,type);demo[k]=[...(demo[k]||[]),{id:uid(),text:type==='sync'?(text+' · '+extra):text,colleague_name:type==='sync'?text:'',reason:type==='sync'?extra:'',discussed:false,notes:'',created_at:new Date().toISOString(),author_name:'Demo'}];saveDemo();return render()}
+  if(!await requireLogin())return false;
+  const {data:sessionData}=await sb.auth.getSession();
+  const u=sessionData?.session?.user;
+  if(!u){alert('Je sessie is niet beschikbaar. Log opnieuw in.');return false;}
+  if(!sb){const k=key(currentDate,type);demo[k]=[...(demo[k]||[]),{id:uid(),text:type==='sync'?(text+' · '+extra):text,colleague_name:type==='sync'?text:'',reason:type==='sync'?extra:'',discussed:false,notes:'',created_at:new Date().toISOString(),author_name:'Demo'}];saveDemo();await render();return true}
   let table=tableFor[type], payload={meeting_date:currentDate,created_by:u.id};
   if(type==='discuss')Object.assign(payload,{title:text,notes:'',is_discussed:false});
   if(type==='read')Object.assign(payload,{title:text,content:''});
   if(type==='sync')Object.assign(payload,{colleague_name:text,reason:extra,is_done:false});
-  const {error}=await sb.from(table).insert(payload);if(error)alert(error.message);else render();
+  const {error}=await sb.from(table).insert(payload);
+  if(error){
+    console.error('Item toevoegen mislukt',type,error);
+    alert('Toevoegen mislukt: '+error.message);
+    await refreshAuth();
+    return false;
+  }
+  await render();
+  await refreshAuth();
+  return true;
 }
 async function deleteItem(type,id){if(!await requireLogin())return;if(!sb){const k=key(currentDate,type);demo[k]=(demo[k]||[]).filter(x=>x.id!==id);saveDemo();return render()}const {error}=await sb.from(tableFor[type]).delete().eq('id',id);if(error)alert(error.message);else render()}
 async function updateItem(type,id,patch){if(!await requireLogin())return;if(!sb){const k=key(currentDate,type);demo[k]=(demo[k]||[]).map(x=>x.id===id?{...x,...patch}:x);saveDemo();return render()}
@@ -310,7 +320,7 @@ async function searchAll(term){
 }
 
 async function weekOverview(){const base=new Date(currentDate+'T12:00:00');const day=(base.getDay()+6)%7;base.setDate(base.getDate()-day);const rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);const ds=d.toISOString().slice(0,10);const [a,b,c,n]=await Promise.all([loadItems('discuss',ds),loadItems('read',ds),loadItems('sync',ds),loadAnnouncements(ds)]);rows.push({ds,a,b,c,n})}$('#weekContent').innerHTML=rows.map(x=>`<button type="button" class="week-day" data-date="${esc(x.ds)}" aria-label="Ga naar ${esc(formatDate(x.ds))}"><h3>${esc(formatDate(x.ds))}</h3><div class="week-grid"><span>Bespreken <b>${x.a.length}</b></span><span>Lezen <b>${x.b.length}</b></span><span>1-op-1 <b>${x.c.length}</b></span><span>Leerlingen <b>${x.n.length}</b></span></div>${x.a.map(i=>`<div class="week-item ${i.discussed?'done':''}">${i.discussed?'✓ ':''}${esc(i.text)}${i.notes?`<small>${esc(i.notes)}</small>`:''}</div>`).join('')}</button>`).join('');$('.week-day').forEach(day=>day.onclick=()=>{setDate(day.dataset.date);$('#weekDialog').close()});$('#weekDialog').showModal()}
-$('.add-form').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();if(f.dataset.type==='sync'){const person=f.querySelector('.sync-person').value.trim();const reason=f.querySelector('.sync-reason').value.trim();if(person&&reason){addItem('sync',person,reason);f.reset()}}else{const input=f.querySelector('input');const text=input.value.trim();if(text){addItem(f.dataset.type,text);input.value=''}}}));
+$('.add-form').forEach(f=>f.addEventListener('submit',async e=>{e.preventDefault();if(f.dataset.type==='sync'){const person=f.querySelector('.sync-person').value.trim();const reason=f.querySelector('.sync-reason').value.trim();if(person&&reason){if(await addItem('sync',person,reason))f.reset()}}else{const input=f.querySelector('input');const text=input.value.trim();if(text){if(await addItem(f.dataset.type,text))input.value=''}}}));
 $('#checkinForm').addEventListener('submit',e=>{e.preventDefault();saveCheckin($('#checkinInput').value)});
 $('#editCheckin').onclick=()=>{$('#checkinForm').classList.toggle('hidden');if(!$('#checkinForm').classList.contains('hidden'))$('#checkinInput').focus()};
 $('#resetCheckin').onclick=resetCheckin;
