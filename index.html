@@ -4,12 +4,26 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ochtendkring · Teamruimte</title>
 <link rel="stylesheet" href="style.css">
+<script>
+(function(){
+  const h=new URLSearchParams(location.hash.replace(/^#/,''));
+  if(h.get('access_token')){
+    try{localStorage.setItem('ochtendkring_session_v1',JSON.stringify({
+      access_token:h.get('access_token'),
+      refresh_token:h.get('refresh_token')||'',
+      token_type:h.get('token_type')||'bearer',
+      expires_in:Number(h.get('expires_in')||3600),
+      expires_at:Math.floor(Date.now()/1000)+Number(h.get('expires_in')||3600)
+    }));history.replaceState(null,document.title,location.pathname+location.search)}catch(e){console.error(e)}
+  }
+})();
+</script>
 
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><span class="brand-mark" aria-hidden="true">M</span><div><span class="eyebrow">De MET · teamruimte</span><h1>Ochtendkring</h1></div></div>
-  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><button id="loginBtn" type="button" class="primary" onclick="(async()=>{const a=new Uint8Array(32);crypto.getRandomValues(a);const v=btoa(String.fromCharCode(...a)).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));const ch=btoa(String.fromCharCode(...new Uint8Array(h))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');localStorage.setItem('ochtendkring_pkce_verifier_v1',v);location.href='https://krarqagmjrbvsvlcbdwd.supabase.co/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(location.origin+location.pathname)+'&code_challenge='+encodeURIComponent(ch)+'&code_challenge_method=S256'})()">Inloggen met Google</button><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
+  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><button id="loginBtn" type="button" class="primary" onclick="window.location.href='https://krarqagmjrbvsvlcbdwd.supabase.co/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(location.origin+location.pathname)">Inloggen met Google</button><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
 </header>
 <main class="container">
   <section class="hero card">
