@@ -46,7 +46,7 @@
       <form class="add-form" data-type="read"><input required maxlength="180" placeholder="Mededeling / info…"><button aria-label="Toevoegen">+</button></form><ul id="listRead" class="item-list"></ul>
     </article>
     <article class="card section-card sync-card"><div class="section-head"><div class="section-title"><span class="section-icon sync-icon" aria-hidden="true">↗</span><div><span class="tag sync">1-OP-1</span><h3>1-op-1</h3><p class="section-description">Kort even syncen</p></div></div><span id="countSync" class="count" aria-label="Aantal 1-op-1-items">0</span></div>
-      <form class="add-form" data-type="sync"><input required maxlength="180" placeholder="Met wie / waarover?"><button aria-label="Toevoegen">+</button></form><ul id="listSync" class="item-list"></ul>
+      <form class="add-form sync-form" data-type="sync"><input class="sync-person" required maxlength="100" placeholder="Met wie wil je 1-op-1?"><input class="sync-reason" required maxlength="180" placeholder="Waarover gaat het?"><button aria-label="1-op-1 toevoegen">+</button></form><ul id="listSync" class="item-list"></ul>
     </article>
   </section>
 
@@ -147,18 +147,13 @@ async function renderCheckin(){
   $('#checkinInput').value=c.custom?c.question:'';
 }
 async function loadAnnouncements(date=currentDate){if(!sb)return demo[key(date,'announcement')]||[];const {data,error}=await sb.from('announcements').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.content,grade:uiAudience[x.audience]||'all',author_name:''}));}
-async function addItem(type,text){
+async function addItem(type,text,extra=''){
   if(!await requireLogin())return; const u=await getUser();
-  if(!sb){const k=key(currentDate,type);demo[k]=[...(demo[k]||[]),{id:uid(),text,discussed:false,notes:'',created_at:new Date().toISOString(),author_name:'Demo'}];saveDemo();return render()}
+  if(!sb){const k=key(currentDate,type);demo[k]=[...(demo[k]||[]),{id:uid(),text:type==='sync'?(text+' · '+extra):text,colleague_name:type==='sync'?text:'',reason:type==='sync'?extra:'',discussed:false,notes:'',created_at:new Date().toISOString(),author_name:'Demo'}];saveDemo();return render()}
   let table=tableFor[type], payload={meeting_date:currentDate,created_by:u.id};
   if(type==='discuss')Object.assign(payload,{title:text,notes:'',is_discussed:false});
   if(type==='read')Object.assign(payload,{title:text,content:''});
-  if(type==='sync'){
-  const meta=u.user_metadata||{};
-  const fullName=meta.full_name||meta.name||'';
-  const firstName=meta.given_name||meta.first_name||(fullName?fullName.trim().split(/\s+/)[0]:'')||'Collega';
-  Object.assign(payload,{colleague_name:firstName,reason:text,is_done:false});
-}
+  if(type==='sync')Object.assign(payload,{colleague_name:text,reason:extra,is_done:false});
   const {error}=await sb.from(table).insert(payload);if(error)alert(error.message);else render();
 }
 async function deleteItem(type,id){if(!await requireLogin())return;if(!sb){const k=key(currentDate,type);demo[k]=(demo[k]||[]).filter(x=>x.id!==id);saveDemo();return render()}const {error}=await sb.from(tableFor[type]).delete().eq('id',id);if(error)alert(error.message);else render()}
@@ -230,7 +225,7 @@ async function searchAll(term){
 }
 
 async function weekOverview(){const base=new Date(currentDate+'T12:00:00');const day=(base.getDay()+6)%7;base.setDate(base.getDate()-day);const rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);const ds=d.toISOString().slice(0,10);const [a,b,c,n]=await Promise.all([loadItems('discuss',ds),loadItems('read',ds),loadItems('sync',ds),loadAnnouncements(ds)]);rows.push({ds,a,b,c,n})}$('#weekContent').innerHTML=rows.map(x=>`<div class="week-day"><h3>${esc(formatDate(x.ds))}</h3><div class="week-grid"><span>Bespreken <b>${x.a.length}</b></span><span>Lezen <b>${x.b.length}</b></span><span>1-op-1 <b>${x.c.length}</b></span><span>Leerlingen <b>${x.n.length}</b></span></div>${x.a.map(i=>`<div class="week-item ${i.discussed?'done':''}">${i.discussed?'✓ ':''}${esc(i.text)}${i.notes?`<small>${esc(i.notes)}</small>`:''}</div>`).join('')}</div>`).join('');$('#weekDialog').showModal()}
-$$('.add-form').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();const input=f.querySelector('input');const text=input.value.trim();if(text){addItem(f.dataset.type,text);input.value=''}}));
+$('.add-form').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();if(f.dataset.type==='sync'){const person=f.querySelector('.sync-person').value.trim();const reason=f.querySelector('.sync-reason').value.trim();if(person&&reason){addItem('sync',person,reason);f.reset()}}else{const input=f.querySelector('input');const text=input.value.trim();if(text){addItem(f.dataset.type,text);input.value=''}}}));
 $('#checkinForm').addEventListener('submit',e=>{e.preventDefault();saveCheckin($('#checkinInput').value)});
 $('#resetCheckin').onclick=resetCheckin;
 $('#announcementForm').addEventListener('submit',e=>{e.preventDefault();const input=$('#announcementInput');const text=input.value.trim();if(text){addAnnouncement(text,$('#announcementGrade').value);input.value=''}});
