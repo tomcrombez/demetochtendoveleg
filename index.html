@@ -23,7 +23,7 @@
 <body>
 <header class="topbar">
   <div class="brand"><span class="brand-mark" aria-hidden="true">M</span><div><span class="eyebrow">De MET · teamruimte</span><h1>Ochtendkring</h1></div></div>
-  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><button id="loginBtn" type="button" class="primary" onclick="window.location.href='https://krarqagmjrbvsvlcbdwd.supabase.co/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(location.origin+location.pathname)">Inloggen met Google</button><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
+  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><button id="loginBtn" type="button" class="primary" onclick="(async()=>{try{const a=new Uint8Array(32);crypto.getRandomValues(a);const v=btoa(String.fromCharCode(...a)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));const ch=btoa(String.fromCharCode(...new Uint8Array(h))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');localStorage.setItem('ochtendkring_pkce_verifier_v1',v);location.href='https://krarqagmjrbvsvlcbdwd.supabase.co/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(location.origin+location.pathname)+'&code_challenge='+encodeURIComponent(ch)+'&code_challenge_method=S256'}catch(e){alert('Google-login kon niet starten: '+e.message)}})()">Inloggen met Google</button><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
 </header>
 <main class="container">
   <section class="hero card">
@@ -116,6 +116,7 @@ const sb=(()=>{
     try{
       const query=new URLSearchParams(location.search);
       const authCode=query.get('code');
+      let handledCode=false;
       if(authCode){
         const verifier=localStorage.getItem(PKCE_STORE);
         if(!verifier)throw new Error('PKCE-verifier ontbreekt');
@@ -126,11 +127,13 @@ const sb=(()=>{
         });
         if(!r.ok)throw new Error('PKCE-code kon niet worden omgezet in een sessie');
         session=await r.json();
+        save();
         localStorage.removeItem(PKCE_STORE);
+        handledCode=true;
         history.replaceState(null,document.title,location.pathname);
       }
       const hash=new URLSearchParams(location.hash.replace(/^#/,''));
-      if(hash.get('access_token')){
+      if(!handledCode && hash.get('access_token')){
         const accessToken=hash.get('access_token');
         const claims=decodeJwt(accessToken)||{};
         session={
