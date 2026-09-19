@@ -197,8 +197,10 @@ h3 { margin: 3px 0 0; font-size: 18px; letter-spacing: -.025em; }
 .modal::backdrop { background: rgba(18, 43, 41, .48); backdrop-filter: blur(2px); }
 .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 21px 23px; border-bottom: 1px solid var(--line); background: #f5fbf8; }
 .modal-head h2 { margin: 3px 0 0; font-size: 25px; }
-.week-day { padding: 18px 23px; border-bottom: 1px solid var(--line); }
-.week-day h3 { margin: 0 0 11px; text-transform: capitalize; }
+.week-day { display:block; width:100%; padding:18px 23px; border:0; border-bottom:1px solid var(--line); background:#fff; color:inherit; text-align:left; cursor:pointer; font:inherit; transition:background .15s ease,box-shadow .15s ease; }
+.week-day:hover { background:#f4faf7; }
+.week-day:focus-visible { outline:3px solid rgba(12,113,101,.2); outline-offset:-3px; }
+.week-day h3 { margin:0 0 11px; text-transform:capitalize; }
 .week-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .week-grid span { padding: 8px 9px; border-radius: 9px; color: var(--muted); background: #f2f6f4; font-size: 12px; }
 .week-grid b { float: right; color: var(--ink); }
