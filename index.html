@@ -10,7 +10,7 @@
 <body>
 <header class="topbar">
   <div class="brand"><span class="brand-mark" aria-hidden="true">M</span><div><span class="eyebrow">De MET · teamruimte</span><h1>Ochtendkring</h1></div></div>
-  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><button id="loginBtn" type="button" class="primary">Inloggen met Google</button><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
+  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><div id="googleSignIn" aria-label="Inloggen met Google"></div><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
 </header>
 <main class="container">
   <section class="hero card">
@@ -68,6 +68,7 @@
 <dialog id="weekDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Overzicht</span><h2>Deze week</h2></div><button id="closeWeek" class="icon-btn">×</button></div><div id="weekContent"></div></dialog><dialog id="archiveDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Historiek</span><h2>Archief</h2><p class="muted small">Voorbije werkweken blijven bewaard.</p></div><button id="closeArchive" class="icon-btn">×</button></div><div id="archiveContent"></div></dialog><dialog id="searchDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Zoeken</span><h2>Zoekresultaten</h2></div><button id="closeSearch" class="icon-btn">×</button></div><div id="searchContent"></div></dialog>
 <template id="itemTemplate"><li class="item"><div class="item-main"><span class="item-text"></span><span class="meta"></span></div><button class="delete" title="Verwijderen" aria-label="Verwijderen">×</button></li></template>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 const SUPABASE_URL='https://krarqagmjrbvsvlcbdwd.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg';
@@ -192,22 +193,47 @@ el.append(node)})}
 function drawAnnouncements(items){const visible=currentGrade==='all'?items:items.filter(a=>a.grade==='all'||a.grade===currentGrade);const el=$('#announcementList');el.innerHTML='';if(!visible.length){el.innerHTML='<li class="empty">Nog geen mededelingen voor deze selectie.</li>';return}visible.forEach(a=>{const li=document.createElement('li');li.className='item';li.innerHTML=`<div class="item-main"><span class="item-text">${esc(a.text)}</span><span class="meta"><span class="audience">${esc(labels[a.grade])}</span> · ${esc(a.author_name||'')} ${a.created_at?'· '+new Date(a.created_at).toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}):''}</span></div><button class="delete" title="Verwijderen">×</button>`;li.querySelector('.delete').onclick=()=>deleteAnnouncement(a.id);el.append(li)})}
 async function render(){try{const [d,r,s,a]=await Promise.all([loadItems('discuss'),loadItems('read'),loadItems('sync'),loadAnnouncements()]);drawList($('#listDiscuss'),d,'discuss');drawList($('#listRead'),r,'read');drawList($('#listSync'),s,'sync');drawAnnouncements(a);$('#countDiscuss').textContent=d.length;$('#countRead').textContent=r.length;$('#countSync').textContent=s.length;setStatus('online')}catch(e){console.error(e);setStatus('offline');}}
 function setStatus(state){const el=$('#syncStatus');el.className='status-dot '+state;el.title=state==='online'?'Verbonden':'Offline / fout'}
-$('#loginBtn').onclick=async()=>{
-  const btn=$('#loginBtn');
-  btn.disabled=true;
-  btn.textContent='Doorsturen…';
-  const {error}=await sb.auth.signInWithOAuth({
-    provider:'google',
-    options:{redirectTo:location.origin+location.pathname}
-  });
-  if(error){
-    console.error(error);
-    btn.disabled=false;
-    btn.textContent='Inloggen met Google';
-    alert('Google-login mislukt: '+error.message);
+async function handleGoogleCredential(response){
+  try{
+    const {error}=await sb.auth.signInWithIdToken({
+      provider:'google',
+      token:response.credential
+    });
+    if(error) throw error;
+    await refreshAuth();
+    await render();
+    await renderCheckin();
+    subscribe();
+  }catch(error){
+    console.error('Google ID token login',error);
+    alert('Google-login mislukt: '+(error.message||error));
   }
-};
-async function refreshAuth(){const u=await getUser();$('#loginBtn').classList.toggle('hidden',!!u);$('#logoutBtn').classList.toggle('hidden',!u);$('#loginNotice').classList.toggle('hidden',!!u);setStatus(u?'online':'offline')}
+}
+function initGoogleSignIn(){
+  if(!window.google?.accounts?.id)return;
+  google.accounts.id.initialize({
+    client_id:'742879413523-9e3rdaehe1qmct4tpjajv7r48q071i64.apps.googleusercontent.com',
+    callback:handleGoogleCredential,
+    ux_mode:'popup',
+    use_fedcm_for_button:true
+  });
+  const el=document.getElementById('googleSignIn');
+  if(el){
+    el.innerHTML='';
+    google.accounts.id.renderButton(el,{
+      type:'standard',
+      theme:'outline',
+      size:'large',
+      text:'signin_with',
+      shape:'rectangular',
+      logo_alignment:'left',
+      width:190
+    });
+  }
+}
+window.onGoogleLibraryLoad=initGoogleSignIn;
+setTimeout(initGoogleSignIn,1000);
+async function refreshAuth(){const u=await getUser();$('#googleSignIn').classList.toggle('hidden',!!u);$('#logoutBtn').classList.toggle('hidden',!u);$('#loginNotice').classList.toggle('hidden',!!u);setStatus(u?'online':'offline')}
 function subscribe(){if(channel)sb.removeChannel(channel);channel=sb.channel('ochtendkring-live').on('postgres_changes',{event:'*',schema:'public',table:'discussion_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'reading_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'sync_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'announcements'},()=>render()).subscribe(s=>setStatus(s==='SUBSCRIBED'?'online':'offline'))}
 async function weekDates(baseDate=currentDate){const base=mondayOf(baseDate),rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);rows.push(dateString(d))}return rows}
 function archiveWeeksFromDates(dates){const currentWeek=weekKey(currentDate);return [...new Set(dates.map(weekKey))].filter(w=>w<currentWeek).sort((a,b)=>b.localeCompare(a))}
