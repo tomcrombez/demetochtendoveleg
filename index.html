@@ -229,15 +229,6 @@ async function searchAll(term){
   $("#searchDialog").showModal()
 }
 
-async function weekOverview(){")+"%";let results=[];
- if(sb){const [d,r,s,a]=await Promise.all([sb.from("discussion_items").select("*").or("title.ilike."+q+",notes.ilike."+q),sb.from("reading_items").select("*").or("title.ilike."+q+",content.ilike."+q),sb.from("sync_items").select("*").or("colleague_name.ilike."+q+",reason.ilike."+q),sb.from("announcements").select("*").or("content.ilike."+q)]);
-  if(d.error||r.error||s.error||a.error){alert("Zoeken is tijdelijk niet gelukt.");return}
-  results=[...(d.data||[]).map(x=>({date:x.meeting_date,type:"Bespreken",text:x.title,detail:x.notes})),...(r.data||[]).map(x=>({date:x.meeting_date,type:"Lezen",text:x.title,detail:x.content})),...(s.data||[]).map(x=>({date:x.meeting_date,type:"1-op-1",text:x.colleague_name,detail:x.reason})),...(a.data||[]).map(x=>({date:x.meeting_date,type:"Mededeling",text:x.content,detail:labels[uiAudience[x.audience]]||"Iedereen"}))]
- } else {Object.entries(demo).forEach(([k,items])=>{const [date,type]=k.split("::");(items||[]).forEach(x=>{if(JSON.stringify(x).toLowerCase().includes(term.toLowerCase()))results.push({date,type,text:x.text,detail:x.notes||x.reason||""})})})}
- results.sort((a,b)=>b.date.localeCompare(a.date));const el=$("#searchContent");
- el.innerHTML=results.length?"<p class=\"search-summary\">"+results.length+" resultaat/resultaten voor <strong>"+esc(term)+"</strong></p>"+results.map(r=>"<button class=\"search-result\" data-date=\""+esc(r.date)+"\"><span class=\"search-result-type\">"+esc(r.type)+"</span><strong>"+esc(r.text)+"</strong><small>"+esc(formatDate(r.date))+(r.detail?" · "+esc(r.detail):"")+"</small></button>").join(""):"<div class=\"archive-empty\">Geen resultaten gevonden.</div>";
- $(".search-result").forEach(b=>b.onclick=()=>{setDate(b.dataset.date);$("#searchDialog").close()});$("#searchDialog").showModal()
-}
 async function weekOverview(){const base=new Date(currentDate+'T12:00:00');const day=(base.getDay()+6)%7;base.setDate(base.getDate()-day);const rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);const ds=d.toISOString().slice(0,10);const [a,b,c,n]=await Promise.all([loadItems('discuss',ds),loadItems('read',ds),loadItems('sync',ds),loadAnnouncements(ds)]);rows.push({ds,a,b,c,n})}$('#weekContent').innerHTML=rows.map(x=>`<div class="week-day"><h3>${esc(formatDate(x.ds))}</h3><div class="week-grid"><span>Bespreken <b>${x.a.length}</b></span><span>Lezen <b>${x.b.length}</b></span><span>1-op-1 <b>${x.c.length}</b></span><span>Leerlingen <b>${x.n.length}</b></span></div>${x.a.map(i=>`<div class="week-item ${i.discussed?'done':''}">${i.discussed?'✓ ':''}${esc(i.text)}${i.notes?`<small>${esc(i.notes)}</small>`:''}</div>`).join('')}</div>`).join('');$('#weekDialog').showModal()}
 $$('.add-form').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();const input=f.querySelector('input');const text=input.value.trim();if(text){addItem(f.dataset.type,text);input.value=''}}));
 $('#checkinForm').addEventListener('submit',e=>{e.preventDefault();saveCheckin($('#checkinInput').value)});
