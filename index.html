@@ -348,15 +348,20 @@ $('#closeArchive').onclick=()=>$('#archiveDialog').close();
 $('#archiveDialog').addEventListener('click',e=>{if(e.target===$('#archiveDialog'))$('#archiveDialog').close()});$('#closeWeek').onclick=()=>$('#weekDialog').close();$('#weekDialog').addEventListener('click',e=>{if(e.target===$('#weekDialog'))$('#weekDialog').close()});
 $('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);
 sb.auth.onAuthStateChange(async (event)=>{
-  await refreshAuth();
-  await render();
-  await renderCheckin();
-  if(event==='SIGNED_IN'||event==='INITIAL_SESSION')subscribe();
+  if(event==='SIGNED_IN'){
+    forcedLoggedOut=false;
+    localStorage.removeItem('ochtendkring_logged_out');
+    await refreshAuth();
+    await render();
+    await renderCheckin();
+    subscribe();
+  }
 });
 (async()=>{
   await refreshAuth();
   await render();
   await renderCheckin();
+  if(await getUser())subscribe();
 })();
 </script>
 </body></html>
