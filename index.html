@@ -85,18 +85,28 @@ function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&l
 function formatDate(d){return new Intl.DateTimeFormat('nl-BE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(d+'T12:00:00'))}
 function setDate(d){currentDate=d;$('#datePicker').value=d;$('#dayTitle').textContent=formatDate(d);render()}
 async function restoreOAuthHash(){
-  const hash=window.location.hash;
-  if(!hash.includes('access_token=')||!hash.includes('refresh_token='))return false;
+  const hash=window.location.hash||'';
+  if(!hash.includes('access_token=')||!hash.includes('refresh_token=')){
+    if(hash) showAuthDebug('Geen OAuth-tokens in terugkeer-URL');
+    return false;
+  }
   try{
     const p=new URLSearchParams(hash.slice(1));
     const access_token=p.get('access_token');
     const refresh_token=p.get('refresh_token');
-    if(!access_token||!refresh_token)return false;
-    const {error}=await sb.auth.setSession({access_token,refresh_token});
-    if(error){console.error('OAuth session restore error:',error);return false}
+    if(!access_token||!refresh_token){showAuthDebug('OAuth-fragment aanwezig, maar tokens ontbreken');return false}
+    const {data,error}=await sb.auth.setSession({access_token,refresh_token});
+    if(error){console.error('OAuth session restore error:',error);showAuthDebug('setSession fout: '+(error.message||String(error)));return false}
     history.replaceState(null,'',window.location.pathname+window.location.search);
+    if(data?.session?.user?.email) showAuthDebug('Google-login gelukt: '+data.session.user.email);
+    else showAuthDebug('setSession gelukt, maar geen sessie ontvangen');
     return true;
-  }catch(e){console.error('OAuth hash error:',e);return false}
+  }catch(e){console.error('OAuth hash error:',e);showAuthDebug('OAuth-fout: '+(e.message||String(e)));return false}
+}
+function showAuthDebug(message){
+  let el=document.getElementById('authDebug');
+  if(!el){el=document.createElement('div');el.id='authDebug';el.style='position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;padding:12px;background:#fff;border:2px solid #222;border-radius:8px;font:14px/1.4 Arial;box-shadow:0 4px 20px rgba(0,0,0,.2)';document.body.appendChild(el)}
+  el.textContent='LOGIN DEBUG — '+message;
 }
 async function getUser(){return (await sb.auth.getUser()).data.user}
 async function requireLogin(){const u=await getUser();if(!u){alert('Log eerst in met je Google-account.');return false}return true}
@@ -267,9 +277,13 @@ $('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(current
   if(!restored){
     try{
       const {error}=await sb.auth.initialize();
-      if(error)console.error('Auth initialization error:',error);
-    }catch(e){console.error('Auth initialization exception:',e)}
+      if(error){console.error('Auth initialization error:',error);showAuthDebug('initialize fout: '+(error.message||String(error)))}
+    }catch(e){console.error('Auth initialization exception:',e);showAuthDebug('initialize uitzondering: '+(e.message||String(e)))}
   }
+  const check=await sb.auth.getSession();
+  if(check.error)showAuthDebug('getSession fout: '+(check.error.message||String(check.error)));
+  else if(check.data?.session?.user?.email)showAuthDebug('Sessie gevonden: '+check.data.session.user.email);
+  else if(!restored)showAuthDebug('Geen actieve sessie gevonden');
   await refreshAuth();
   await render();
   await renderCheckin();
