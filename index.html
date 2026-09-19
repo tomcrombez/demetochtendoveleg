@@ -94,6 +94,7 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
     flowType:'implicit'
   }
 });
+let forcedLoggedOut=localStorage.getItem('ochtendkring_logged_out')==='1';
 let currentDate=initialDate(); let currentGrade='all'; let demo=JSON.parse(localStorage.getItem('ochtendkring_demo')||'{}'); let channel=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const labels={all:'Iedereen',first:'1e graad',second:'2e graad',third:'3e graad'};
@@ -108,7 +109,10 @@ function key(d,t){return `${d}::${t}`} function uid(){return crypto.randomUUID?c
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function formatDate(d){return new Intl.DateTimeFormat('nl-BE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(d+'T12:00:00'))}
 function setDate(d){currentDate=d;$('#datePicker').value=d;$('#dayTitle').textContent=formatDate(d);render()}
-async function getUser(){return (await sb.auth.getUser()).data.user}
+async function getUser(){
+  if(forcedLoggedOut)return null;
+  try{return (await sb.auth.getUser()).data.user}catch(error){return null}
+}
 async function requireLogin(){const u=await getUser();if(!u){alert('Log eerst in met je Google-account.');return false}return true}
 const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items'};
 const CHECKIN_SENTINEL='__OCHTENDKRING_CHECKIN__';
@@ -209,6 +213,8 @@ async function render(){try{const [d,r,s,a]=await Promise.all([loadItems('discus
 function setStatus(state){const el=$('#syncStatus');el.className='status-dot '+state;el.title=state==='online'?'Verbonden':'Offline / fout'}
 async function handleGoogleCredential(response){
   try{
+    localStorage.removeItem('ochtendkring_logged_out');
+    forcedLoggedOut=false;
     const {error}=await sb.auth.signInWithIdToken({
       provider:'google',
       token:response.credential
@@ -304,6 +310,11 @@ $('#announcementForm').addEventListener('submit',e=>{e.preventDefault();const in
 $$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentGrade=t.dataset.grade;render()});
 $('#datePicker').onchange=e=>setDate(e.target.value);$('#prevDay').onclick=()=>moveDay(-1);$('#nextDay').onclick=()=>moveDay(1);$('#todayBtn').onclick=()=>setDate(localDate());function moveDay(n){const d=dateObj(currentDate);d.setDate(d.getDate()+n);if(d.getDay()===0)d.setDate(d.getDate()+(n>0?1:-2));if(d.getDay()===6)d.setDate(d.getDate()+(n>0?2:-1));setDate(dateString(d))}
 document.getElementById('logoutBtn').addEventListener('click',()=>{
+  forcedLoggedOut=true;
+  localStorage.setItem('ochtendkring_logged_out','1');
+  $('#logoutBtn').classList.add('hidden');
+  $('#googleSignIn').classList.remove('hidden');
+  $('#loginNotice').classList.remove('hidden');
   // Use a one-time logout URL so storage is cleared BEFORE Supabase initializes again.
   try{
     for(let i=localStorage.length-1;i>=0;i--){
