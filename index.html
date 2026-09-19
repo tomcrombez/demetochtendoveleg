@@ -86,20 +86,19 @@ function formatDate(d){return new Intl.DateTimeFormat('nl-BE',{weekday:'long',da
 function setDate(d){currentDate=d;$('#datePicker').value=d;$('#dayTitle').textContent=formatDate(d);render()}
 async function restoreOAuthHash(){
   const hash=window.location.hash||'';
-  if(!hash.includes('access_token=')||!hash.includes('refresh_token=')){
-    if(hash) showAuthDebug('Geen OAuth-tokens in terugkeer-URL');
-    return false;
-  }
+  if(!hash.includes('access_token='))return false;
   try{
     const p=new URLSearchParams(hash.slice(1));
     const access_token=p.get('access_token');
     const refresh_token=p.get('refresh_token');
-    if(!access_token||!refresh_token){showAuthDebug('OAuth-fragment aanwezig, maar tokens ontbreken');return false}
-    const {data,error}=await sb.auth.setSession({access_token,refresh_token});
-    if(error){console.error('OAuth session restore error:',error);showAuthDebug('setSession fout: '+(error.message||String(error)));return false}
+    if(!access_token){showAuthDebug('OAuth-fragment aanwezig, maar access token ontbreekt');return false}
+    const init=await sb.auth.initialize();
+    if(init.error){console.error('Auth initialize error:',init.error);showAuthDebug('initialize fout: '+(init.error.message||String(init.error)));return false}
+    const session=await sb.auth.setSession({access_token,refresh_token});
+    if(session.error){console.error('OAuth session restore error:',session.error);showAuthDebug('setSession fout: '+(session.error.message||String(session.error)));return false}
     history.replaceState(null,'',window.location.pathname+window.location.search);
-    if(data?.session?.user?.email) showAuthDebug('Google-login gelukt: '+data.session.user.email);
-    else showAuthDebug('setSession gelukt, maar geen sessie ontvangen');
+    if(session.data?.session?.user?.email) showAuthDebug('Google-login gelukt: '+session.data.session.user.email);
+    else showAuthDebug('setSession uitgevoerd, maar geen sessie ontvangen');
     return true;
   }catch(e){console.error('OAuth hash error:',e);showAuthDebug('OAuth-fout: '+(e.message||String(e)));return false}
 }
