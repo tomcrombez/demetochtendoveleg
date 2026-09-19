@@ -5,39 +5,6 @@
 <title>Ochtendkring · Teamruimte</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
-<script>
-(function(){
-  function installGoogleLogin(){
-    const btn=document.getElementById('loginBtn');
-    if(!btn)return;
-    btn.onclick=async function(){
-      btn.disabled=true;
-      btn.textContent='Doorsturen…';
-      try{
-        const client=window.supabase.createClient(
-          'https://krarqagmjrbvsvlcbdwd.supabase.co',
-          'sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg',
-          {auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true}}
-        );
-        const {error}=await client.auth.signInWithOAuth({
-          provider:'google',
-          options:{
-            redirectTo:window.location.origin+window.location.pathname
-          }
-        });
-        if(error)throw error;
-      }catch(error){
-        console.error('Google login error:',error);
-        btn.disabled=false;
-        btn.textContent='Inloggen met Google';
-        alert('Inloggen via Google is niet gelukt: '+(error.message||error));
-      }
-    };
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installGoogleLogin);
-  else installGoogleLogin();
-})();
-</script>
 </head>
 <body>
 <header class="topbar">
@@ -105,16 +72,17 @@ const SUPABASE_ANON_KEY='sb_publishable_29buhG4npO6zzHNSJnXoiQ_pWIqmAVg';
 const oauthHash=window.location.hash;
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{flowType:'implicit',detectSessionInUrl:false,persistSession:true}});
 async function restoreOAuthSession(){
-  if(!oauthHash||!oauthHash.includes('access_token='))return;
+  if(!oauthHash||!oauthHash.includes('access_token='))return false;
   try{
     const p=new URLSearchParams(oauthHash.slice(1));
-    const access_token=p.get('access_token'),refresh_token=p.get('refresh_token');
-    if(access_token&&refresh_token){
-      const {error}=await sb.auth.setSession({access_token,refresh_token});
-      if(error)console.error('OAuth session restore error:',error);
-      else history.replaceState(null,'',window.location.pathname+window.location.search);
-    }
-  }catch(e){console.error('OAuth URL error:',e)}
+    const access_token=p.get('access_token');
+    const refresh_token=p.get('refresh_token');
+    if(!access_token||!refresh_token)return false;
+    const {data,error}=await sb.auth.setSession({access_token,refresh_token});
+    if(error){console.error('OAuth session restore error:',error);return false;}
+    history.replaceState(null,'',window.location.pathname+window.location.search);
+    return !!data?.session;
+  }catch(e){console.error('OAuth URL error:',e);return false}
 }
 let currentDate=initialDate(); let currentGrade='all'; let demo=JSON.parse(localStorage.getItem('ochtendkring_demo')||'{}'); let channel=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -293,6 +261,15 @@ $('#searchDialog').addEventListener('click',e=>{if(e.target===$('#searchDialog')
 $('#archiveBtn').onclick=archiveOverview;
 $('#closeArchive').onclick=()=>$('#archiveDialog').close();
 $('#archiveDialog').addEventListener('click',e=>{if(e.target===$('#archiveDialog'))$('#archiveDialog').close()});$('#closeWeek').onclick=()=>$('#weekDialog').close();$('#weekDialog').addEventListener('click',e=>{if(e.target===$('#weekDialog'))$('#weekDialog').close()});
-$('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);restoreOAuthSession().then(()=>refreshAuth()).catch(console.error);render();renderCheckin();sb.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN'||event==='INITIAL_SESSION'||event==='SIGNED_OUT')refreshAuth()});subscribe();
+$('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);
+(async()=>{
+  const restored=await restoreOAuthSession();
+  await refreshAuth();
+  if(restored) await render();
+  renderCheckin();
+  subscribe();
+})();
+sb.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN'||event==='INITIAL_SESSION'||event==='SIGNED_OUT')refreshAuth()});
+render();
 </script>
 </body></html>
