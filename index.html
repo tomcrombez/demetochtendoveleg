@@ -7,14 +7,22 @@
 <script>
 (function(){
   const h=new URLSearchParams(location.hash.replace(/^#/,''));
-  if(h.get('access_token')){
-    try{localStorage.setItem('ochtendkring_session_v1',JSON.stringify({
-      access_token:h.get('access_token'),
-      refresh_token:h.get('refresh_token')||'',
-      token_type:h.get('token_type')||'bearer',
-      expires_in:Number(h.get('expires_in')||3600),
-      expires_at:Math.floor(Date.now()/1000)+Number(h.get('expires_in')||3600)
-    }));history.replaceState(null,document.title,location.pathname+location.search)}catch(e){console.error(e)}
+  const token=h.get('access_token');
+  if(token){
+    try{
+      const p=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+      const claims=JSON.parse(atob(p.padEnd(p.length+(4-p.length%4)%4,'=')));
+      const session={
+        access_token:token,
+        refresh_token:h.get('refresh_token')||'',
+        token_type:h.get('token_type')||'bearer',
+        expires_in:Number(h.get('expires_in')||3600),
+        expires_at:Number(claims.exp||0)||Math.floor(Date.now()/1000)+Number(h.get('expires_in')||3600),
+        user:{id:claims.sub,email:claims.email||'',user_metadata:{full_name:claims.user_metadata?.full_name||claims.name||claims.email||''}}
+      };
+      localStorage.setItem('ochtendkring_session_v1',JSON.stringify(session));
+      history.replaceState(null,document.title,location.pathname+location.search);
+    }catch(e){console.error('OAuth callback',e);alert('Google-login: token kon niet worden verwerkt.');}
   }
 })();
 </script>
@@ -23,7 +31,7 @@
 <body>
 <header class="topbar">
   <div class="brand"><span class="brand-mark" aria-hidden="true">M</span><div><span class="eyebrow">De MET · teamruimte</span><h1>Ochtendkring</h1></div></div>
-  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><button id="loginBtn" type="button" class="primary" onclick="(async()=>{try{const a=new Uint8Array(32);crypto.getRandomValues(a);const v=btoa(String.fromCharCode(...a)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));const ch=btoa(String.fromCharCode(...new Uint8Array(h))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');localStorage.setItem('ochtendkring_pkce_verifier_v1',v);location.href='https://krarqagmjrbvsvlcbdwd.supabase.co/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(location.origin+location.pathname)+'&code_challenge='+encodeURIComponent(ch)+'&code_challenge_method=S256'}catch(e){alert('Google-login kon niet starten: '+e.message)}})()">Inloggen met Google</button><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
+  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><button id="loginBtn" type="button" class="primary" onclick="location.href='https://krarqagmjrbvsvlcbdwd.supabase.co/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(location.origin+location.pathname)">Inloggen met Google</button><button id="logoutBtn" class="secondary hidden">Uitloggen</button></div>
 </header>
 <main class="container">
   <section class="hero card">
