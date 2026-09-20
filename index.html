@@ -629,15 +629,28 @@ document.getElementById('archiveBtn').addEventListener('click',async(e)=>{e.prev
 $('#closeArchive').onclick=()=>$('#archiveDialog').close();
 $('#archiveDialog').addEventListener('click',e=>{if(e.target===$('#archiveDialog'))$('#archiveDialog').close()});$('#closeWeek').onclick=()=>$('#weekDialog').close();$('#weekDialog').addEventListener('click',e=>{if(e.target===$('#weekDialog'))$('#weekDialog').close()});
 $('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(currentDate);
-sb.auth.onAuthStateChange(async (event)=>{
-  if(event==='SIGNED_IN'){
-    forcedLoggedOut=false;
-    localStorage.removeItem(LOGOUT_STORAGE_KEY);localStorage.removeItem(LEGACY_LOGOUT_STORAGE_KEY);
-    const u=await refreshAuth();
-    if(!u)return;
-    await render();
-    await renderCheckin();
-    subscribe();
+sb.auth.onAuthStateChange((event, session)=>{
+  // Supabase kan na een OAuth-redirect eerst INITIAL_SESSION sturen.
+  // Gebruik geen async callback: Supabase waarschuwt dat async calls hier
+  // een lock/deadlock kunnen veroorzaken. De verwerking wordt daarom
+  // bewust naar de volgende event-loop-tick uitgesteld.
+  if(event==='INITIAL_SESSION'||event==='SIGNED_IN'){
+    setTimeout(async()=>{
+      if(!session?.user){
+        await refreshAuth();
+        return;
+      }
+      forcedLoggedOut=false;
+      localStorage.removeItem(LOGOUT_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_LOGOUT_STORAGE_KEY);
+      const u=await refreshAuth();
+      if(!u)return;
+      await render();
+      await renderCheckin();
+      subscribe();
+    },0);
+  }else if(event==='SIGNED_OUT'){
+    setTimeout(()=>refreshAuth(),0);
   }
 });
 (async()=>{
