@@ -408,61 +408,106 @@ function circleSlotsForToday(){
   }));
 }
 async function renderCircleCoverage(){
-  const el=$('#circleCheckList'); if(!el)return;
-  const circles=circleSlotsForToday();
-  const coverage=await loadCircleCoverage(currentDate);
-  let required=0,done=0;
-  el.innerHTML='';
-  circles.forEach(circle=>{
-    const saved=coverage[circle.id]||[];
-    const rows=circle.slots.map((candidates,index)=>({candidates,index,state:saved[index]||{checked:false,replacement:''}}));
-    const hasSlots=rows.length>0;
-    if(!hasSlots){
-      const row=document.createElement('div');
-      row.className='circle-row circle-special';
-      row.innerHTML='<div class="circle-info"><strong>'+esc(circle.name)+'</strong><span>lokaal '+esc(circle.room)+'</span></div><span class="circle-special-label">Kernkring</span>';
-      el.append(row);
-      return;
-    }
-    const block=document.createElement('div');
-    block.className='circle-row';
-    const slotHtml=rows.map(({candidates,index,state})=>{
-      const isMulti=candidates.length>1;
-      const label=isMulti?candidates.join(' of '):candidates[0];
-      const covered=state.checked===true;
-      required++; if(covered)done++;
-      const replacementValue=state.replacement||'';
-      const slotLabel=rows.length>1?(index===0?'Ochtend':'Avond'):'Begeleider';
-      return '<div class="circle-slot"><label class="circle-check-label"><input type="checkbox" data-circle="'+circle.id+'" data-slot="'+index+'" aria-label="'+esc(circle.name+' '+slotLabel+' begeleiding geregeld')+'" '+(covered?'checked':'')+'><span><strong>'+slotLabel+': '+esc(label)+'</strong>'+(isMulti?'<small>één van beiden volstaat</small>':'')+'</span></label><input class="circle-replacement" data-circle="'+circle.id+'" data-slot="'+index+'" value="'+esc(replacementValue)+'" placeholder="Andere begeleider indien nodig…"></div>';
-    }).join('');
-    block.innerHTML='<div class="circle-info"><strong>'+esc(circle.name)+'</strong><span>lokaal '+esc(circle.room)+'</span></div><div class="circle-slots">'+slotHtml+'</div>';
-    el.append(block);
-  });
-  $('#circleCheckSummary').textContent=done+' / '+required+' geregeld';
-  selectAll('.circle-check-list input[type="checkbox"]').forEach(input=>input.onchange=async e=>{
-    const id=e.target.dataset.circle,slot=Number(e.target.dataset.slot);
-    const next=await loadCircleCoverage(currentDate);
-    const arr=next[id]||[];
-    arr[slot]=arr[slot]||{checked:false,replacement:''};
-    arr[slot].checked=e.target.checked;
-    next[id]=arr;
-    await saveCircleCoverage(next);
-    await renderCircleCoverage();
-  });
-  selectAll('.circle-replacement').forEach(input=>{
-    input.onchange=async e=>{
-      const id=e.target.dataset.circle,slot=Number(e.target.dataset.slot);
-      const next=await loadCircleCoverage(currentDate);
-      const arr=next[id]||[];
-      arr[slot]=arr[slot]||{checked:false,replacement:''};
-      arr[slot].replacement=e.target.value.trim();
-      next[id]=arr;
-      await saveCircleCoverage(next);
-      await renderCircleCoverage();
-    };
-  });
-}
+  const el=$('#circleCheckList');
+  const summary=$('#circleCheckSummary');
+  if(!el||!summary)return;
 
+  // Bouw de zichtbare lijst ALTIJD eerst vanuit het vaste weekschema.
+  // De database mag het tonen van de kringen nooit blokkeren.
+  const circles=circleSlotsForToday();
+  const emptyCoverage={};
+  circles.forEach(circle=>{
+    emptyCoverage[circle.id]=(circle.slots||[]).map(()=>({checked:false,replacement:''}));
+  });
+
+  const paint=(coverage)=>{
+    let required=0,done=0;
+    el.innerHTML='';
+
+    circles.forEach(circle=>{
+      const saved=coverage?.[circle.id]||[];
+      const slots=Array.isArray(circle.slots)?circle.slots:[];
+
+      // Kernkring: wel tonen met lokaal, maar geen individuele begeleider afvinken.
+      if(slots.length===0){
+        const row=document.createElement('div');
+        row.className='circle-row circle-special';
+        row.innerHTML='<div class="circle-info"><strong>'+esc(circle.name)+'</strong><span>lokaal '+esc(circle.room)+'</span></div><span class="circle-special-label">Kernkring</span>';
+        el.append(row);
+        return;
+      }
+
+      const block=document.createElement('div');
+      block.className='circle-row';
+
+      const slotHtml=slots.map((candidates,index)=>{
+        const people=Array.isArray(candidates)?candidates:[];
+        const isMulti=people.length>1;
+        const label=people.join(' of ');
+        const state=saved[index]||{checked:false,replacement:''};
+        const covered=state.checked===true;
+        const replacementValue=state.replacement||'';
+        const slotLabel=slots.length>1?(index===0?'Ochtend':'Avond'):'Begeleider';
+
+        required++;
+        if(covered)done++;
+
+        return '<div class="circle-slot">'
+          +'<label class="circle-check-label">'
+          +'<input type="checkbox" data-circle="'+circle.id+'" data-slot="'+index+'" aria-label="'+esc(circle.name+' '+slotLabel+' begeleiding geregeld')+'" '+(covered?'checked':'')+'>'
+          +'<span><strong>'+slotLabel+': '+esc(label)+'</strong>'+(isMulti?'<small>één van beiden volstaat</small>':'')+'</span>'
+          +'</label>'
+          +'<input class="circle-replacement" data-circle="'+circle.id+'" data-slot="'+index+'" value="'+esc(replacementValue)+'" placeholder="Andere begeleider indien nodig…">'
+          +'</div>';
+      }).join('');
+
+      block.innerHTML='<div class="circle-info"><strong>'+esc(circle.name)+'</strong><span>lokaal '+esc(circle.room)+'</span></div><div class="circle-slots">'+slotHtml+'</div>';
+      el.append(block);
+    });
+
+    summary.textContent=done+' / '+required+' geregeld';
+
+    selectAll('.circle-check-list input[type="checkbox"]').forEach(input=>{
+      input.onchange=async e=>{
+        const id=e.target.dataset.circle;
+        const slot=Number(e.target.dataset.slot);
+        const next=await loadCircleCoverage(currentDate);
+        const arr=next[id]||[];
+        arr[slot]=arr[slot]||{checked:false,replacement:''};
+        arr[slot].checked=e.target.checked;
+        next[id]=arr;
+        await saveCircleCoverage(next);
+        await renderCircleCoverage();
+      };
+    });
+
+    selectAll('.circle-replacement').forEach(input=>{
+      input.onchange=async e=>{
+        const id=e.target.dataset.circle;
+        const slot=Number(e.target.dataset.slot);
+        const next=await loadCircleCoverage(currentDate);
+        const arr=next[id]||[];
+        arr[slot]=arr[slot]||{checked:false,replacement:''};
+        arr[slot].replacement=e.target.value.trim();
+        next[id]=arr;
+        await saveCircleCoverage(next);
+        await renderCircleCoverage();
+      };
+    });
+  };
+
+  // Eerste paint: dit moet zelfs werken als Supabase niet bereikbaar is.
+  paint(emptyCoverage);
+
+  // Daarna halen we alleen de reeds opgeslagen vinkjes/vervangers op.
+  try{
+    const saved=await loadCircleCoverage(currentDate);
+    paint(saved);
+  }catch(error){
+    console.error('Kringencontrole laden mislukt:',error);
+    // De al getoonde lijst blijft zichtbaar.
+  }
+}
 async function loadItems(type,date=currentDate){
   if(!sb)return demo[key(date,type)]||[];
   if(type==='discuss'){const {data,error}=await sb.from('discussion_items').select('*').eq('meeting_date',date).neq('title',CIRCLE_SENTINEL).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.title,discussed:x.is_discussed,author_name:''}));}
@@ -545,7 +590,7 @@ if(type==='discuss'){const action=document.createElement('button');action.classN
 if(type==='sync'){const action=document.createElement('button');action.className='discussed-toggle '+(item.discussed?'is-done':'');action.textContent=item.discussed?'Afgerond ✓':'Markeer als afgerond';action.onclick=()=>updateItem(type,item.id,{discussed:!item.discussed});main.prepend(action)}
 el.append(node)})}
 function drawAnnouncements(items){const visible=currentGrade==='all'?items:items.filter(a=>a.grade==='all'||a.grade===currentGrade);const el=$('#announcementList');el.innerHTML='';if(!visible.length){el.innerHTML='<li class="empty">Nog geen mededelingen voor deze selectie.</li>';return}visible.forEach(a=>{const li=document.createElement('li');li.className='item';li.innerHTML=`<div class="item-main"><span class="item-text">${esc(a.text)}</span><span class="meta"><span class="audience">${esc(labels[a.grade])}</span> · ${esc(a.author_name||'')} ${a.created_at?'· '+new Date(a.created_at).toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}):''}</span></div><button class="delete" title="Verwijderen">×</button>`;li.querySelector('.delete').onclick=()=>deleteAnnouncement(a.id);el.append(li)})}
-async function render(){try{const [d,r,s,a]=await Promise.all([loadItems('discuss'),loadItems('read'),loadItems('sync'),loadAnnouncements()]);drawList($('#listDiscuss'),d,'discuss');await renderCircleCoverage();drawList($('#listRead'),r,'read');drawList($('#listSync'),s,'sync');drawAnnouncements(a);$('#countDiscuss').textContent=d.length;$('#countRead').textContent=r.length;$('#countSync').textContent=s.length;await renderLinks();setStatus('online')}catch(e){console.error(e);setStatus('offline');}}
+async function render(){try{await renderCircleCoverage();const [d,r,s,a]=await Promise.all([loadItems('discuss'),loadItems('read'),loadItems('sync'),loadAnnouncements()]);drawList($('#listDiscuss'),d,'discuss');drawList($('#listRead'),r,'read');drawList($('#listSync'),s,'sync');drawAnnouncements(a);$('#countDiscuss').textContent=d.length;$('#countRead').textContent=r.length;$('#countSync').textContent=s.length;await renderLinks();setStatus('online')}catch(e){console.error(e);setStatus('offline');}}
 function setStatus(state){const el=$('#syncStatus');el.className='status-dot '+state;el.title=state==='online'?'Verbonden':'Offline / fout'}
 async function handleGoogleCredential(response){
   try{
