@@ -149,7 +149,8 @@ let demo=JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY)||localStorage.getItem
 let channel=null;
 let accessDenied=false;
 let accessConfigError=false;
-const $=s=>document.querySelector(s), $=s=>[...document.querySelectorAll(s)];
+const $ = s => document.querySelector(s);
+const $ = s => [...document.querySelectorAll(s)];
 const labels={all:'Iedereen',first:'1e graad',second:'2e graad',third:'3e graad'};
 function localDate(){const d=new Date(),off=d.getTimezoneOffset();return new Date(d.getTime()-off*60000).toISOString().slice(0,10)}
 function dateObj(ds){return new Date(ds+"T12:00:00")} function dateString(d){return d.toISOString().slice(0,10)}
