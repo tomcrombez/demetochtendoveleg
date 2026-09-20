@@ -162,7 +162,17 @@ function formatWeek(ds){const m=mondayOf(ds),f=new Date(m);f.setDate(m.getDate()
 function key(d,t){return `${d}::${t}`} function uid(){return crypto.randomUUID?crypto.randomUUID():Date.now()+Math.random()}
 function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function formatDate(d){return new Intl.DateTimeFormat('nl-BE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(d+'T12:00:00'))}
-function setDate(d){currentDate=d;$('#datePicker').value=d;$('#dayTitle').textContent=formatDate(d);render()}
+async function setDate(d){
+  currentDate=d;
+  $('#datePicker').value=d;
+  $('#dayTitle').textContent=formatDate(d);
+  // De inhoud van het overleg én de check-in horen bij dezelfde datum.
+  // render() laadt de datumgebonden overlegitems; renderCheckin() moet
+  // hier ook expliciet opnieuw uitgevoerd worden wanneer de gebruiker
+  // naar een andere dag gaat.
+  await render();
+  await renderCheckin();
+}
 async function getUser(){
   // De echte Supabase-sessie is de bron van waarheid. Gebruik forcedLoggedOut
   // niet als blokkade: na een OAuth-redirect kan er een nieuwe sessie zijn,
