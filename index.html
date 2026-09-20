@@ -424,12 +424,13 @@ async function renderCircleCoverage(){
       const covered=state.checked===true;
       required++; if(covered)done++;
       const replacementValue=state.replacement||'';
-      return '<div class="circle-slot"><label class="circle-check-label"><input type="checkbox" data-circle="'+circle.id+'" data-slot="'+index+'" '+(covered?'checked':'')+'><span><strong>'+(index>0?DAY_NAMES[circleDayKey(currentDate)]+' · ':'')+label+'</strong>'+(isMulti?'<small>één van beiden volstaat</small>':'')+'</span></label><input class="circle-replacement" data-circle="'+circle.id+'" data-slot="'+index+'" value="'+esc(replacementValue)+'" placeholder="Andere begeleider…"></div>';
+      const slotLabel=rows.length>1?(index===0?'Ochtend':'Avond'):'Begeleider';
+      return '<div class="circle-slot"><label class="circle-check-label"><input type="checkbox" data-circle="'+circle.id+'" data-slot="'+index+'" aria-label="'+esc(circle.name+' '+slotLabel+' begeleiding geregeld')+'" '+(covered?'checked':'')+'><span><strong>'+slotLabel+': '+esc(label)+'</strong>'+(isMulti?'<small>één van beiden volstaat</small>':'')+'</span></label><input class="circle-replacement" data-circle="'+circle.id+'" data-slot="'+index+'" value="'+esc(replacementValue)+'" placeholder="Andere begeleider indien nodig…"></div>';
     }).join('');
     block.innerHTML='<div class="circle-info"><strong>'+esc(circle.name)+'</strong><span>lokaal '+esc(circle.room)+'</span></div><div class="circle-slots">'+slotHtml+'</div>';
     el.append(block);
   });
-  $('#circleCheckSummary').textContent=required+' / '+required+' geregeld'.replace(/^/,done+' / ');
+  $('#circleCheckSummary').textContent=done+' / '+required+' geregeld';
   selectAll('.circle-check-list input[type="checkbox"]').forEach(input=>input.onchange=async e=>{
     const id=e.target.dataset.circle,slot=Number(e.target.dataset.slot);
     const next=await loadCircleCoverage(currentDate);
@@ -441,13 +442,12 @@ async function renderCircleCoverage(){
     await renderCircleCoverage();
   });
   selectAll('.circle-replacement').forEach(input=>{
-    input.oninput=async e=>{
+    input.onchange=async e=>{
       const id=e.target.dataset.circle,slot=Number(e.target.dataset.slot);
       const next=await loadCircleCoverage(currentDate);
       const arr=next[id]||[];
       arr[slot]=arr[slot]||{checked:false,replacement:''};
-      arr[slot].replacement=e.target.value;
-      if(e.target.value.trim())arr[slot].checked=true;
+      arr[slot].replacement=e.target.value.trim();
       next[id]=arr;
       await saveCircleCoverage(next);
       await renderCircleCoverage();
