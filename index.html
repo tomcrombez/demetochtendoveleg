@@ -169,18 +169,7 @@ const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items
 const CHECKIN_SENTINEL='__OCHTENDKRING_CHECKIN__';
 const LINK_SENTINEL='__OCHTENDKRING_LINK__';
 let linksInitialized=false;
-const DEFAULT_LINK_CATEGORIES=[
-  {name:'KALENDERS',items:['Kalender 2026-2027','Lessenroosters','MET structuur jaarplanning Aurélie','Keuken kuisen','Zomeroverleg 2025-2026','Schooltje openen','Samwerkingsruimtes template']},
-  {name:'KRINGEN',items:['Kringen en planning kringen','Check-in vragen en alternatieve invulling','Om lln andere plaatsen te geven in de kring','Grej of the day','Ideeën PAC (vooral eerste graad)','Hybridedag \'25-\'26']},
-  {name:'LEERLINGENLIJSTEN EN LEERKRACHTENLIJSTEN',items:['LLlijst en database Wouter','LLlijst infofiches 1A en 1B','LLlijst met bliksems','Buddyverdeling','Aanwezigheden SPORT','Adressenlijst team']},
-  {name:'Mailinglijst ouders',items:[]},
-  {name:'Boeken bijhouden door leerlingen',items:[]},
-  {name:'ZORG & LEERSTEUN',items:['LLoverleg','Bednet wachtwoorden','Overzicht zorg alle lln','Nieuwe werking leersteun','Stageactiviteiten','Agenda vrije leerlingen']},
-  {name:'ACTIVITEITEN',items:['Gouden Weken','Themaweek','Hybridedag','Meerdaagse, begeleiding','Zilveren week','Uitstappen dit schooljaar','MET extra\'s','Infoavonden','Expertises ouders']},
-  {name:'DE MET DOCUMENTEN & PRAKTISCH',items:['Huisstijl','MET-raad','Afspraken','Reservering samenwerkingsruimte','WeZooz codes leerlingen','Afspraakplanning maken','Feedbackdoc aan coachee koppelen','Werkdoc voor de werkgroepen en klein overleg','Visitiaties','Driehoeksgesprekken inplannen','AI','Werkgroepen','Takenverdeling coördinatie','Afspraken samenwerken']},
-  {name:'EVALUATIEDAGEN',items:['December','Maart','Juni']},
-  {name:'COACHGESPREK TEMPLATES',items:[]}
-];
+const DEFAULT_LINK_CATEGORIES=JSON.parse(`[{"name":"KALENDERS","items":[{"name":"Kalender 2026-2027","url":"https://docs.google.com/spreadsheets/d/1kojORWnhRuSS1pruELzubh01tvmhscsB0jcrGaT8aTg/edit?gid=1626193747#gid=1626193747"},{"name":"Lessenroosters","url":"https://docs.google.com/spreadsheets/d/1OFmzCZrOTFiYug1R4NKfx7bvF8-PwWn4tOcHAHZct9A/edit?gid=0#gid=0"},{"name":"MET structuur jaarplanning Aurélie","url":"https://docs.google.com/spreadsheets/d/1HnG0ilDlu_-w_AYAf8TuCUYeY-jZzgYxHUiYZLhPqcs/edit?gid=0#gid=0"},{"name":"Keuken kuisen","url":"https://docs.google.com/document/d/1UmQITU3tl81_5ft1IX3g3rZiBPkVnrn3CnPWYXv_8sA/edit?tab=t.0"},{"name":"Zomeroverleg 2025-2026","url":""},{"name":"Schooljte openen","url":"https://docs.google.com/document/d/1Fc4PlXYs1UkxyPtvv2teF63Ssnw4O0kJhl_OgTmbf0/edit?tab=t.0#heading=h.qnlf5fnhw2i"},{"name":"Samwerkingsruimtes template","url":"https://docs.google.com/spreadsheets/d/1HXRIzk4s-dDguaUfw0-hvbe5dPvVQsXrWWT9w4xWuWE/edit?gid=0#gid=0"}]},{"name":"KRINGEN","items":[{"name":"Toezichten/kringen TW 26-27 (nog niet klaar)","url":"https://docs.google.com/spreadsheets/d/1G_xBptQX6x3weBD_IAb-MHrzKIT9wX-1BkAa_8X-65k/edit?gid=133177732#gid=133177732"},{"name":"Kringen 26-27 (eerste graad)","url":"https://docs.google.com/spreadsheets/d/1GYLgq8ggzcM-Wykpgj8tGaJyYy8KVZT6/edit?gid=1516164669#gid=1516164669"},{"name":"Kringen 26-27 (tweede graad) / derde graad","url":"https://docs.google.com/spreadsheets/d/1EMUproKGg3txG5LvZjJ7f1iMEPHH3B8A/edit?gid=1516164669#gid=1516164669"},{"name":"Feedback Kring 9 - Kangoe-Rex / evaluatie Kring 10 Narwal","url":"https://docs.google.com/document/d/1Id4gl5cQV7IwlGtI2VPSccaVS_WUw8WomJnMJyesrjE/edit?usp=sharing"},{"name":"Feedback Kring 8","url":"https://docs.google.com/document/d/1DFUMsbg5jyiYCdF35gDSY1DzYY-LK0FWsoO5KkNLxP8/edit?usp=sharing"},{"name":"Check-in vragen en alternatieve invulling","url":"https://docs.google.com/document/d/1OAhQG5aKrOX-kjc1b0rs6-8Tj1aDKOJwy7J9sTXA5_s/edit"},{"name":"Om lln andere plaatsen te geven in de kring","url":"https://docs.google.com/document/d/1C-JpYxrPuDVoHeUuUzj4By1aTMfpq11keBkFBaftgpk/edit?tab=t.0#heading=h.so1e10p1g0o6"},{"name":"Grej of the day","url":""},{"name":"Ideeën PAC (vooral eerste graad)","url":"https://docs.google.com/document/d/1RhnsFwWn5fqVSAg5SsZUaKJ3B3NX1qrYk7nfMqIga7s/edit?tab=t.0"},{"name":"Hybridedag '25-'26","url":""}]},{"name":"LEERLINGENLIJSTEN EN LEERKRACHTENLIJSTEN","items":[{"name":"LLlijst en database Wouter","url":"https://docs.google.com/spreadsheets/d/1UlB60mOnA9aledU-liwf2-3y8TBFgpD9td8ijob5NKI/edit?gid=0#gid=0"},{"name":"LLlijst infofiches 1A en 1B","url":""},{"name":"LLlijst met bliksems","url":"https://docs.google.com/spreadsheets/d/1w9ILZNyCt8ToroqQzA1Esr1fa1rq6Gi1ta_89cFxiKk/edit?gid=0#gid=0"},{"name":"Buddyverdeling","url":""},{"name":"Aanwezigheden SPORT","url":"https://drive.google.com/file/d/1InEMjQzJpMsmQfPOyNfM2sukNcA5s8MD/view?usp=sharing"},{"name":"Adressenlijst team","url":"https://docs.google.com/document/d/1IxDJjVjfQOMN6Jp-AfVwo5_MwBFknB4Br9Ml_D9-C7U/edit?tab=t.0"}]},{"name":"Mailinglijst ouders","items":[{"name":"Mailinglijst ouders","url":"https://docs.google.com/spreadsheets/d/19WBHqx2EsUK_uTmhRp2HJnKRFkIB4d5ozZQ7qeRwxLc/edit?usp=sharing"}]},{"name":"Boeken bijhouden door leerlingen","items":[{"name":"Boeken bijhouden door leerlingen","url":"https://docs.google.com/document/d/1eAyFqR0o5X_CFfLQE3DipzT1IVlWJqJ6q8zNkr7jf_M/edit?usp=sharing"}]},{"name":"ZORG & LEERSTEUN","items":[{"name":"LLoverleg","url":"https://docs.google.com/spreadsheets/d/1bXxsUjg-WKssx1OGpmvbEHADRuCFKj7K/edit?usp=sharing&ouid=110694666100308093108&rtpof=true&sd=true"},{"name":"Bednet wachtwoorden","url":""},{"name":"Overzicht zorg alle lln","url":"https://docs.google.com/spreadsheets/d/1pMpLGfsku1Cln6uB7lzrxnyjfrch_WUSNo9sWhAQNwk/edit?usp=drive_link"},{"name":"Nieuwe werking leersteun","url":"https://www.youtube.com/watch?v=bsCPviAYaXc"},{"name":"Stageactiviteiten","url":""},{"name":"Agenda vrije leerlingen","url":""}]},{"name":"ACTIVITEITEN","items":[{"name":"Gouden Weken","url":"https://docs.google.com/document/d/1pnK6f_VnrFeqjiwyVEFZ_Rv0G-cE1ytUl74js5JyrXo/edit?tab=t.lloochw5sooz#heading=h.5sqgbx3oa4cy"},{"name":"Themaweek","url":""},{"name":"Hybridedag","url":""},{"name":"Meerdaagse, begeleiding","url":""},{"name":"Zilveren week","url":""},{"name":"Uitstappen dit schooljaar","url":"https://docs.google.com/document/d/1e37YAuOLglAhmgzuY1m0zA-zX9PPUhlFO3wXqpsWnD4/edit?tab=t.jmb9epc1abb9"},{"name":"MET extra's","url":"https://docs.google.com/spreadsheets/d/1lnTZmQsQpVVIU0vLOeQnK5axWWHDs7Mm77ujFHsAi0Y/edit?gid=0#gid=0"},{"name":"Infoavonden","url":"https://docs.google.com/document/d/1ggUGZZLEhQBtcltf4CmZ7Cf9pcY9uMYk7FZZ76JX9H4/edit?tab=t.0"},{"name":"Expertises ouders","url":"https://docs.google.com/document/d/1egMsrV7cEvuUHAzTrtPeF308rjSH-xvwVhZ4IjlxIF8/edit?tab=t.0"}]},{"name":"DE MET DOCUMENTEN & PRAKTISCH","items":[{"name":"Huisstijl","url":"https://docs.google.com/presentation/d/1ipKKwQjSaXCJWAs7IUS24R62XEyEH7Qi/edit#slide=id.p1"},{"name":"MET-raad","url":"https://docs.google.com/document/d/1HVMuvBVCl18LKU_1IyUqjxw-gi4z3jIV2YacaYzbL8s/edit?tab=t.0#heading=h.560wpsdrs52v"},{"name":"Afspraken","url":"https://docs.google.com/document/d/1w3N9x3dx5HlGpN5BfbMB51sdNhUirGWcwlvvfUxX8QE/edit?tab=t.0#heading=h.dj5uyd71fky5"},{"name":"Agenda afspraken team","url":"https://docs.google.com/presentation/d/1WfiXTWnEqnowv_9VZFVIJnT1Gom7cC4j9dBkXdr7y94/edit?slide=id.p#slide=id.p"},{"name":"Reservering samenwerkingsruimte","url":""},{"name":"WeZooz codes leerlingen","url":"https://docs.google.com/spreadsheets/d/1LYz2S-PthJYMIO4rK9clLIvKDcUeebmwxU8SOWaCZiU/edit?gid=0#gid=0"},{"name":"WeZooz inloggen / promotiecode","url":"https://www.wezoozacademy.be/promotiecode/"},{"name":"Afspraakplanning maken","url":""},{"name":"Feedbackdoc aan coachee koppelen","url":"https://docs.google.com/document/d/14SEW3VIpeUiPbrF4sjtNn7uPD44XkfEdL2IVg-FNmXE/edit"},{"name":"Werkdoc voor de werkgroepen en klein overleg","url":"https://docs.google.com/document/d/1NM-cOn5rjcGbfZLZ2LfX4oiWIGQvxtPXk5lQXowFCYc/edit?tab=t.lloochw5sooz"},{"name":"Driver werkgroepen","url":"https://docs.google.com/document/d/1K7VbufJHZGV6EyefBjlHC7AeoR3oAR8kWaskNU6CoM8/edit?tab=t.9iqwhm49vi45"},{"name":"Visitiaties","url":""},{"name":"Driehoeksgesprekken inplannen","url":""},{"name":"AI","url":""},{"name":"Werkgroepen","url":"https://docs.google.com/document/d/1K7VbufJHZGV6EyefBjlHC7AeoR3oAR8kWaskNU6CoM8/edit?tab=t.lloochw5sooz"},{"name":"Takenverdeling coördinatie","url":""},{"name":"Afspraken samenwerken","url":"https://docs.google.com/document/d/1MM9x_MmcoNGgqHVlh3ayh2qxIIschU9lI-8CB-GR1BQ/edit?tab=t.0#heading=h.vube7pumlznk"}]},{"name":"EVALUATIEDAGEN","items":[{"name":"December","url":""},{"name":"Maart","url":""},{"name":"Juni","url":"https://docs.google.com/document/d/11WC1aDCm4Joydb5Zyp7WJewafT1CxoYM/edit"},{"name":"Planning juni","url":"https://docs.google.com/spreadsheets/d/1tU2UzIBVno22b8q4xyCXHtxcK_GNTEbHsg2aV52Q1eI/edit?gid=1820640911#gid=1820640911"}]},{"name":"COACHGESPREK TEMPLATES","items":[{"name":"Template coachgesprek VOORNAAM NAAM","url":"https://docs.google.com/document/d/1fmuTyiQc3BMSN_u61IZqIPAH48XFT3H5Yz9PL56gMuc/edit?tab=t.0"},{"name":"Template coachgesprek Verticaal VOORNAAM NAAM","url":"https://docs.google.com/spreadsheets/d/1ttxakUoW2P_fRypMomM7SwWxZ-0pqT4RB2AXUIO-Bos/edit?gid=0#gid=0"},{"name":"template COACHGESPREK VOORNAAM NAAM","url":"https://docs.google.com/spreadsheets/d/1J8k-U5aEx9p6OySQegpOeMJLgcXHeX3pcTu6BsNsqfU/edit?gid=1412406155#gid=1412406155"},{"name":"Sjabloon notities challenge","url":"https://docs.google.com/document/d/1G7Nw6w5tqa6ekfrHsBV8GMY19sK7A0qcIyB-d933YlE/edit"},{"name":"bewijsje","url":""}]},{"name":"POETSIE POETSIE AFSPRAKEN","items":[{"name":"Onderhoud whiteboard","url":"https://docs.google.com/document/d/1yTKxhdyEZ2LshAm29K6NEZZflD50UFa0HcivNhTjvVoM/edit?tab=t.0#heading=h.49ukior1djie"}]},{"name":"MEDALS AND MISSIONS","items":[]}]`);
 const checkinSuggestions=[
   'Wat geeft je vandaag energie?',
   'Waar kijk je vandaag het meest naar uit?',
@@ -204,25 +193,34 @@ const checkinSuggestions=[
   'Met welk woord zou je je ochtend omschrijven?'
 ];
 async function loadLinks(){
-  if(!sb)return JSON.parse(localStorage.getItem('ochtendkring_links')||'[]');
+  if(!sb)return [];
   const {data,error}=await sb.from('reading_items').select('id,content,created_at,created_by').eq('title',LINK_SENTINEL).order('created_at');
   if(error)throw error;
-  const rows=(data||[]).map(x=>{try{return {...JSON.parse(x.content),id:x.id,created_at:x.created_at,created_by:x.created_by}}catch(e){return null}}).filter(Boolean);
-  if(!rows.length&&!linksInitialized){
-    linksInitialized=true;
-    const {data:sessionData}=await sb.auth.getSession();
-    const u=sessionData?.session?.user;
-    if(u){
-      const records=[];
-      for(const cat of DEFAULT_LINK_CATEGORIES){
-        const catId=uid();
-        records.push({id:catId,kind:'category',name:cat.name});
-        for(const name of cat.items)records.push({id:uid(),kind:'item',categoryId:catId,name,url:''});
+  let rows=(data||[]).map(x=>{try{return {...JSON.parse(x.content),id:x.id,created_at:x.created_at,created_by:x.created_by}}catch(e){return null}}).filter(Boolean);
+  const {data:sessionData}=await sb.auth.getSession();
+  const u=sessionData?.session?.user;
+  if(u){
+    const catRows=rows.filter(x=>x.kind==='category');
+    const missingCats=DEFAULT_LINK_CATEGORIES.filter(cat=>!catRows.some(x=>x.name===cat.name)).map(cat=>({meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify({id:uid(),kind:'category',name:cat.name})}));
+    if(missingCats.length){
+      const {error:e}=await sb.from('reading_items').insert(missingCats);if(e)throw e;
+      const fresh=await sb.from('reading_items').select('id,content,created_at,created_by').eq('title',LINK_SENTINEL).order('created_at');if(fresh.error)throw fresh.error;
+      rows=(fresh.data||[]).map(x=>{try{return {...JSON.parse(x.content),id:x.id,created_at:x.created_at,created_by:x.created_by}}catch(e){return null}}).filter(Boolean);
+    }
+    const cats=rows.filter(x=>x.kind==='category'),missing=[],updates=[];
+    for(const cat of DEFAULT_LINK_CATEGORIES){
+      const category=cats.find(x=>x.name===cat.name);if(!category)continue;
+      for(const item of cat.items){
+        const existing=rows.find(x=>x.kind==='item'&&x.categoryId===category.id&&x.name===item.name);
+        if(!existing)missing.push({meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify({id:uid(),kind:'item',categoryId:category.id,name:item.name,url:item.url||''})});
+        else if(item.url&&existing.url!==item.url)updates.push(sb.from('reading_items').update({content:JSON.stringify({...existing,url:item.url})}).eq('id',existing.id));
       }
-      const payload=records.map(x=>({meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify(x)}));
-      const {error:seedError}=await sb.from('reading_items').insert(payload);
-      if(seedError)throw seedError;
-      return records;
+    }
+    if(missing.length){const {error:e}=await sb.from('reading_items').insert(missing);if(e)throw e}
+    if(updates.length){const results=await Promise.all(updates);const failed=results.find(x=>x.error);if(failed)throw failed.error}
+    if(missing.length||updates.length){
+      const fresh=await sb.from('reading_items').select('id,content,created_at,created_by').eq('title',LINK_SENTINEL).order('created_at');if(fresh.error)throw fresh.error;
+      rows=(fresh.data||[]).map(x=>{try{return {...JSON.parse(x.content),id:x.id,created_at:x.created_at,created_by:x.created_by}}catch(e){return null}}).filter(Boolean);
     }
   }
   return rows;
