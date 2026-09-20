@@ -226,7 +226,7 @@ async function loadLinks(){
   }
   return rows;
 }
-async async function renderLinks(){
+async function renderLinks(){
   const el=$('#linksContent');if(!el)return;
   try{
     const rows=await loadLinks();
