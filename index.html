@@ -367,14 +367,17 @@ async function loadCircleCoverage(date=currentDate){
   const day=circleDayKey(date);
   const defaults={};
   Object.entries(CIRCLE_SCHEDULE).forEach(([id,c])=>{
-    const slots=c.slots[day]||[];
+    const slots=Array.isArray(c.slots?.[day])?c.slots[day]:[];
     defaults[id]=slots.map(()=>({checked:false,replacement:''}));
   });
   if(!sb)return demo[key(date,'circleCoverage')]||defaults;
-  const {data,error}=await sb.from('discussion_items').select('id,notes').eq('meeting_date',date).eq('title',CIRCLE_SENTINEL).order('created_at',{ascending:false}).limit(1);
-  if(error)throw error;
-  if(!data?.[0]?.notes)return defaults;
   try{
+    const {data,error}=await sb.from('discussion_items').select('id,notes').eq('meeting_date',date).eq('title',CIRCLE_SENTINEL).order('created_at',{ascending:false}).limit(1);
+    if(error){
+      console.warn('Kringencontrole kon niet uit Supabase worden gelezen:',error);
+      return defaults;
+    }
+    if(!data?.[0]?.notes)return defaults;
     const saved=JSON.parse(data[0].notes);
     return {...defaults,...saved};
   }catch(error){
@@ -397,7 +400,12 @@ async function saveCircleCoverage(coverage){
 }
 function circleSlotsForToday(){
   const day=circleDayKey(currentDate);
-  return Object.entries(CIRCLE_SCHEDULE).map(([id,c])=>({id:Number(id),...c,slots:c.slots[day]||[],room:c.roomByDay?.[day]||c.room||''})).filter(c=>c.slots.length||c.room==='Kernkring');
+  return Object.entries(CIRCLE_SCHEDULE).map(([id,c])=>({
+    id:Number(id),
+    ...c,
+    slots:Array.isArray(c.slots?.[day])?c.slots[day]:[],
+    room:c.roomByDay?.[day]||c.room||''
+  }));
 }
 async function renderCircleCoverage(){
   const el=$('#circleCheckList'); if(!el)return;
