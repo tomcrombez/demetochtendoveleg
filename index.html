@@ -50,7 +50,14 @@
   <div id="loginNotice" class="notice">Log in met je Google-account om als team te werken.</div>
 
   <section class="grid three">
-    <article class="card section-card discuss-card"><div class="section-head"><div class="section-title"><span class="section-icon discuss-icon" aria-hidden="true">●</span><div><span class="tag discuss">BESPREKEN</span><h3>Bespreken</h3><p class="section-description">Moet besproken worden</p></div></div><span id="countDiscuss" class="count" aria-label="Aantal bespreekpunten">0</span></div>
+    <article class="card section-card discuss-card"><div class="section-head"><div class="section-title"><span class="section-icon discuss-icon" aria-hidden="true">●</span><div><span class="tag discuss">BESPREKEN</span><h3>Bespreken</h3><p class="section-description">Eerst controleren we of elke kring begeleiding heeft.</p></div></div><span id="countDiscuss" class="count" aria-label="Aantal bespreekpunten">0</span></div>
+      <div class="circle-check-wrap">
+        <div class="circle-check-head">
+          <div><span class="tag discuss">KRINGEN</span><h4>Begeleiding vandaag</h4></div>
+          <span id="circleCheckSummary" class="circle-summary">0 / 0 geregeld</span>
+        </div>
+        <div id="circleCheckList" class="circle-check-list"></div>
+      </div>
       <form class="add-form" data-type="discuss"><input required maxlength="180" placeholder="Nieuw bespreekpunt…"><button aria-label="Toevoegen">+</button></form><ul id="listDiscuss" class="item-list"></ul>
     </article>
     <article class="card section-card read-card"><div class="section-head"><div class="section-title"><span class="section-icon read-icon" aria-hidden="true">▤</span><div><span class="tag read">LEZEN</span><h3>Lezen</h3><p class="section-description">Gewoon lezen</p></div></div><span id="countRead" class="count" aria-label="Aantal leesitems">0</span></div>
@@ -226,6 +233,23 @@ async function requireLogin(){
 }
 const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items'};
 const CHECKIN_SENTINEL='__OCHTENDOVERLEG_CHECKIN__';
+const CIRCLE_SENTINEL='__OCHTENDOVERLEG_CIRCLE_COVERAGE__';
+const CIRCLE_SCHEDULE={
+  1:{name:'kring 1',room:'Mozart',slots:{mo:[['Kim']],di:[['Katrien']],wo:[['Thomas','Kim']],do:[['Kim']],vr:[['Katrien']]}},
+  2:{name:'kring 2',room:'Labo',slots:{mo:[['Silvy']],di:[['Heleen'],['Silvy']],wo:[['Silvy']],do:[['Silvy']],vr:[['Heleen'],['Silvy']]}},
+  3:{name:'kring 3',room:'Café',slots:{mo:[['Mare']],di:[['Ingrid'],['Mare']],wo:[['Mare']],do:[['Mare']],vr:[['Mare']]}},
+  4:{name:'kring 4',room:'Linde',slots:{mo:[['Ellen']],di:[['Ellen']],wo:[['Ellen']],do:[['Ellen']],vr:[['Ellen']]}},
+  5:{name:'kring 5',roomByDay:{mo:'Zon',di:'Kernkring',wo:'Zon',do:'Zon',vr:'Zon'},slots:{mo:[['Nancy']],di:[],wo:[['Nancy']],do:[['Ingrid']],vr:[['Ingrid']]}},
+  6:{name:'kring 6',roomByDay:{mo:'Kleine kamer',di:'Kernkring',wo:'Kleine kamer',do:'Kleine kamer',vr:'Kleine kamer'},slots:{mo:[['Thomas']],di:[],wo:[['Ingrid']],do:[['Shani']],vr:[['Shani']]}},
+  7:{name:'kring 7',roomByDay:{mo:'Klaproos',di:'Kernkring',wo:'Klaproos',do:'Klaproos',vr:'Klaproos'},slots:{mo:[['Danny']],di:[],wo:[['Tom']],do:[['Marleen']],vr:[['Marleen']]}},
+  8:{name:'kring 8',room:'Margriet',slots:{mo:[],di:[['Nelle']],wo:[['Nelle']],do:[['Hilde']],vr:[['Danny']]}},
+  9:{name:'kring 9',room:'Maan',slots:{mo:[],di:[['Marleen']],wo:[['Hilde','Thomas']],do:[['Evelien']],vr:[['Evelien']]}},
+  10:{name:'kring 10',room:'Vivaldi',slots:{mo:[],di:[['Jan']],wo:[['Shani']],do:[['Danny']],vr:[['Nathalie']]}},
+};
+const DAY_KEYS=['mo','di','wo','do','vr'];
+const DAY_NAMES={mo:'Maandag',di:'Dinsdag',wo:'Woensdag',do:'Donderdag',vr:'Vrijdag'};
+function circleDayKey(date=currentDate){return DAY_KEYS[(dateObj(date).getDay()+6)%7]}
+
 const LEGACY_CHECKIN_SENTINEL='__OCHTENDKRING_CHECKIN__';
 const LINK_SENTINEL='__OCHTENDOVERLEG_LINK__';
 const LEGACY_LINK_SENTINEL='__OCHTENDKRING_LINK__';
@@ -339,9 +363,101 @@ function openLinkDialog(mode='item',editId=null,categoryId=''){
   }else if(categoryId)catSelect.value=categoryId;
   dialog.showModal();
 }
+async function loadCircleCoverage(date=currentDate){
+  const day=circleDayKey(date);
+  const defaults={};
+  Object.entries(CIRCLE_SCHEDULE).forEach(([id,c])=>{
+    const slots=c.slots[day]||[];
+    defaults[id]=slots.map(()=>({checked:false,replacement:''}));
+  });
+  if(!sb)return demo[key(date,'circleCoverage')]||defaults;
+  const {data,error}=await sb.from('discussion_items').select('id,content').eq('meeting_date',date).eq('title',CIRCLE_SENTINEL).order('created_at',{ascending:false}).limit(1);
+  if(error)throw error;
+  if(!data?.[0]?.content)return defaults;
+  try{
+    const saved=JSON.parse(data[0].content);
+    return {...defaults,...saved};
+  }catch(error){
+    console.warn('Kringencontrole kon niet gelezen worden:',error);
+    return defaults;
+  }
+}
+async function saveCircleCoverage(coverage){
+  if(!await requireLogin())return false;
+  if(!sb){demo[key(currentDate,'circleCoverage')]=coverage;saveDemo();return true}
+  const u=await getUser();
+  const {data,error}=await sb.from('discussion_items').select('id').eq('meeting_date',currentDate).eq('title',CIRCLE_SENTINEL).limit(1);
+  if(error){alert('Kringencontrole laden mislukt: '+error.message);return false}
+  const payload={meeting_date:currentDate,title:CIRCLE_SENTINEL,notes:'',is_discussed:false,content:JSON.stringify(coverage),created_by:u.id};
+  const result=data?.[0]
+    ? await sb.from('discussion_items').update({content:payload.content,created_by:u.id}).eq('id',data[0].id)
+    : await sb.from('discussion_items').insert(payload);
+  if(result.error){alert('Kringencontrole opslaan mislukt: '+result.error.message);return false}
+  return true;
+}
+function circleSlotsForToday(){
+  const day=circleDayKey(currentDate);
+  return Object.entries(CIRCLE_SCHEDULE).map(([id,c])=>({id:Number(id),...c,slots:c.slots[day]||[],room:c.roomByDay?.[day]||c.room||''})).filter(c=>c.slots.length||c.room==='Kernkring');
+}
+async function renderCircleCoverage(){
+  const el=$('#circleCheckList'); if(!el)return;
+  const circles=circleSlotsForToday();
+  const coverage=await loadCircleCoverage(currentDate);
+  let required=0,done=0;
+  el.innerHTML='';
+  circles.forEach(circle=>{
+    const saved=coverage[circle.id]||[];
+    const rows=circle.slots.map((candidates,index)=>({candidates,index,state:saved[index]||{checked:false,replacement:''}}));
+    const hasSlots=rows.length>0;
+    if(!hasSlots){
+      const row=document.createElement('div');
+      row.className='circle-row circle-special';
+      row.innerHTML='<div class="circle-info"><strong>'+esc(circle.name)+'</strong><span>lokaal '+esc(circle.room)+'</span></div><span class="circle-special-label">Kernkring</span>';
+      el.append(row);
+      return;
+    }
+    const block=document.createElement('div');
+    block.className='circle-row';
+    const slotHtml=rows.map(({candidates,index,state})=>{
+      const isMulti=candidates.length>1;
+      const label=isMulti?candidates.join(' of '):candidates[0];
+      const covered=state.checked===true;
+      required++; if(covered)done++;
+      const replacementValue=state.replacement||'';
+      return '<div class="circle-slot"><label class="circle-check-label"><input type="checkbox" data-circle="'+circle.id+'" data-slot="'+index+'" '+(covered?'checked':'')+'><span><strong>'+(index>0?DAY_NAMES[circleDayKey(currentDate)]+' · ':'')+label+'</strong>'+(isMulti?'<small>één van beiden volstaat</small>':'')+'</span></label><input class="circle-replacement" data-circle="'+circle.id+'" data-slot="'+index+'" value="'+esc(replacementValue)+'" placeholder="Andere begeleider…"></div>';
+    }).join('');
+    block.innerHTML='<div class="circle-info"><strong>'+esc(circle.name)+'</strong><span>lokaal '+esc(circle.room)+'</span></div><div class="circle-slots">'+slotHtml+'</div>';
+    el.append(block);
+  });
+  $('#circleCheckSummary').textContent=required+' / '+required+' geregeld'.replace(/^/,done+' / ');
+  selectAll('.circle-check-list input[type="checkbox"]').forEach(input=>input.onchange=async e=>{
+    const id=e.target.dataset.circle,slot=Number(e.target.dataset.slot);
+    const next=await loadCircleCoverage(currentDate);
+    const arr=next[id]||[];
+    arr[slot]=arr[slot]||{checked:false,replacement:''};
+    arr[slot].checked=e.target.checked;
+    next[id]=arr;
+    await saveCircleCoverage(next);
+    await renderCircleCoverage();
+  });
+  selectAll('.circle-replacement').forEach(input=>{
+    input.oninput=async e=>{
+      const id=e.target.dataset.circle,slot=Number(e.target.dataset.slot);
+      const next=await loadCircleCoverage(currentDate);
+      const arr=next[id]||[];
+      arr[slot]=arr[slot]||{checked:false,replacement:''};
+      arr[slot].replacement=e.target.value;
+      if(e.target.value.trim())arr[slot].checked=true;
+      next[id]=arr;
+      await saveCircleCoverage(next);
+      await renderCircleCoverage();
+    };
+  });
+}
+
 async function loadItems(type,date=currentDate){
   if(!sb)return demo[key(date,type)]||[];
-  if(type==='discuss'){const {data,error}=await sb.from('discussion_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.title,discussed:x.is_discussed,author_name:''}));}
+  if(type==='discuss'){const {data,error}=await sb.from('discussion_items').select('*').eq('meeting_date',date).neq('title',CIRCLE_SENTINEL).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.title,discussed:x.is_discussed,author_name:''}));}
   if(type==='read'){const {data,error}=await sb.from('reading_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).filter(x=>x.title!==CHECKIN_SENTINEL&&x.title!==LEGACY_CHECKIN_SENTINEL&&x.title!==LINK_SENTINEL&&x.title!==LEGACY_LINK_SENTINEL).map(x=>({...x,text:x.title,author_name:''}));}
   const {data,error}=await sb.from('sync_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.reason?x.colleague_name+' · '+x.reason:x.colleague_name,discussed:x.is_done,author_name:''}));
 }
@@ -421,7 +537,7 @@ if(type==='discuss'){const action=document.createElement('button');action.classN
 if(type==='sync'){const action=document.createElement('button');action.className='discussed-toggle '+(item.discussed?'is-done':'');action.textContent=item.discussed?'Afgerond ✓':'Markeer als afgerond';action.onclick=()=>updateItem(type,item.id,{discussed:!item.discussed});main.prepend(action)}
 el.append(node)})}
 function drawAnnouncements(items){const visible=currentGrade==='all'?items:items.filter(a=>a.grade==='all'||a.grade===currentGrade);const el=$('#announcementList');el.innerHTML='';if(!visible.length){el.innerHTML='<li class="empty">Nog geen mededelingen voor deze selectie.</li>';return}visible.forEach(a=>{const li=document.createElement('li');li.className='item';li.innerHTML=`<div class="item-main"><span class="item-text">${esc(a.text)}</span><span class="meta"><span class="audience">${esc(labels[a.grade])}</span> · ${esc(a.author_name||'')} ${a.created_at?'· '+new Date(a.created_at).toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}):''}</span></div><button class="delete" title="Verwijderen">×</button>`;li.querySelector('.delete').onclick=()=>deleteAnnouncement(a.id);el.append(li)})}
-async function render(){try{const [d,r,s,a]=await Promise.all([loadItems('discuss'),loadItems('read'),loadItems('sync'),loadAnnouncements()]);drawList($('#listDiscuss'),d,'discuss');drawList($('#listRead'),r,'read');drawList($('#listSync'),s,'sync');drawAnnouncements(a);$('#countDiscuss').textContent=d.length;$('#countRead').textContent=r.length;$('#countSync').textContent=s.length;await renderLinks();setStatus('online')}catch(e){console.error(e);setStatus('offline');}}
+async function render(){try{const [d,r,s,a]=await Promise.all([loadItems('discuss'),loadItems('read'),loadItems('sync'),loadAnnouncements()]);drawList($('#listDiscuss'),d,'discuss');await renderCircleCoverage();drawList($('#listRead'),r,'read');drawList($('#listSync'),s,'sync');drawAnnouncements(a);$('#countDiscuss').textContent=d.length;$('#countRead').textContent=r.length;$('#countSync').textContent=s.length;await renderLinks();setStatus('online')}catch(e){console.error(e);setStatus('offline');}}
 function setStatus(state){const el=$('#syncStatus');el.className='status-dot '+state;el.title=state==='online'?'Verbonden':'Offline / fout'}
 async function handleGoogleCredential(response){
   try{
