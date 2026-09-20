@@ -13,7 +13,11 @@
   <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><div id="googleSignIn" aria-label="Inloggen met Google"></div><a id="logoutBtn" href="?logout=1" class="secondary hidden" role="button">Uitloggen</a></div>
 </header>
 <main class="container">
-  <section class="hero card">
+  <nav class="app-nav" aria-label="Teamruimte">
+    <button id="morningTab" class="app-tab active" type="button">Ochtendkring</button>
+    <button id="linksTab" class="app-tab" type="button">Teamlinks</button>
+  </nav>
+  <div id="morningView">  <section class="hero card">
     <div class="hero-copy">
       <span class="hero-kicker">Dagstart · samen scherp</span>
       <div class="date-row"><button id="prevDay" class="icon-btn" aria-label="Vorige dag">←</button><input id="datePicker" type="date" aria-label="Datum"><button id="nextDay" class="icon-btn" aria-label="Volgende dag">→</button><button id="todayBtn" class="secondary">Vandaag</button></div>
@@ -63,7 +67,48 @@
     <form id="announcementForm" class="announcement-form"><select id="announcementGrade" aria-label="Voor wie?"><option value="all">Iedereen</option><option value="first">1e graad</option><option value="second">2e graad</option><option value="third">3e graad</option></select><input id="announcementInput" required maxlength="220" placeholder="Wat moeten de leerlingen weten?"><button class="primary">Mededeling toevoegen</button></form>
     <ul id="announcementList" class="item-list"></ul>
   </section>
+  </div>
+  <section id="linksView" class="links-page hidden">
+    <div class="card links-card">
+      <div class="links-page-head">
+        <div>
+          <span class="eyebrow">Teamruimte</span>
+          <h2>Teamlinks</h2>
+          <p class="muted">Alle belangrijke documenten, planningen en praktische tools op één plek.</p>
+        </div>
+        <div class="links-actions">
+          <button id="addCategoryBtn" class="secondary" type="button">+ Categorie</button>
+          <button id="addLinkBtn" class="primary" type="button">+ Link</button>
+        </div>
+      </div>
+      <div id="linksContent" class="links-content"></div>
+    </div>
+  </section>
 </main>
+
+<dialog id="linkDialog" class="modal">
+  <div class="modal-head">
+    <div><span class="eyebrow">Beheer</span><h2 id="linkDialogTitle">Link toevoegen</h2></div>
+    <button id="closeLinkDialog" class="icon-btn" type="button">×</button>
+  </div>
+  <form id="linkForm" class="link-form">
+    <input type="hidden" id="linkEditId">
+    <input type="hidden" id="linkMode" value="item">
+    <label id="linkCategoryLabel">Categorie
+      <select id="linkCategory" required></select>
+    </label>
+    <label>Naam
+      <input id="linkName" required maxlength="180" placeholder="Naam van de link">
+    </label>
+    <label id="linkUrlLabel">URL
+      <input id="linkUrl" type="url" maxlength="500" placeholder="https://...">
+    </label>
+    <div class="link-form-actions">
+      <button id="cancelLink" class="secondary" type="button">Annuleren</button>
+      <button class="primary" type="submit">Opslaan</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="weekDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Overzicht</span><h2>Deze week</h2></div><button id="closeWeek" class="icon-btn">×</button></div><div id="weekContent"></div></dialog><dialog id="archiveDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Historiek</span><h2>Archief</h2><p class="muted small">Voorbije werkweken blijven bewaard.</p></div><button id="closeArchive" class="icon-btn">×</button></div><div id="archiveContent"></div></dialog><dialog id="searchDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Zoeken</span><h2>Zoekresultaten</h2></div><button id="closeSearch" class="icon-btn">×</button></div><div id="searchContent"></div></dialog>
 <template id="itemTemplate"><li class="item"><div class="item-main"><span class="item-text"></span><span class="meta"></span></div><button class="delete" title="Verwijderen" aria-label="Verwijderen">×</button></li></template>
@@ -122,6 +167,20 @@ async function getUser(){
 async function requireLogin(){const u=await getUser();if(!u){alert('Log eerst in met je Google-account.');return false}return true}
 const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items'};
 const CHECKIN_SENTINEL='__OCHTENDKRING_CHECKIN__';
+const LINK_SENTINEL='__OCHTENDKRING_LINK__';
+let linksInitialized=false;
+const DEFAULT_LINK_CATEGORIES=[
+  {name:'KALENDERS',items:['Kalender 2026-2027','Lessenroosters','MET structuur jaarplanning Aurélie','Keuken kuisen','Zomeroverleg 2025-2026','Schooltje openen','Samwerkingsruimtes template']},
+  {name:'KRINGEN',items:['Kringen en planning kringen','Check-in vragen en alternatieve invulling','Om lln andere plaatsen te geven in de kring','Grej of the day','Ideeën PAC (vooral eerste graad)','Hybridedag \'25-\'26']},
+  {name:'LEERLINGENLIJSTEN EN LEERKRACHTENLIJSTEN',items:['LLlijst en database Wouter','LLlijst infofiches 1A en 1B','LLlijst met bliksems','Buddyverdeling','Aanwezigheden SPORT','Adressenlijst team']},
+  {name:'Mailinglijst ouders',items:[]},
+  {name:'Boeken bijhouden door leerlingen',items:[]},
+  {name:'ZORG & LEERSTEUN',items:['LLoverleg','Bednet wachtwoorden','Overzicht zorg alle lln','Nieuwe werking leersteun','Stageactiviteiten','Agenda vrije leerlingen']},
+  {name:'ACTIVITEITEN',items:['Gouden Weken','Themaweek','Hybridedag','Meerdaagse, begeleiding','Zilveren week','Uitstappen dit schooljaar','MET extra\'s','Infoavonden','Expertises ouders']},
+  {name:'DE MET DOCUMENTEN & PRAKTISCH',items:['Huisstijl','MET-raad','Afspraken','Reservering samenwerkingsruimte','WeZooz codes leerlingen','Afspraakplanning maken','Feedbackdoc aan coachee koppelen','Werkdoc voor de werkgroepen en klein overleg','Visitiaties','Driehoeksgesprekken inplannen','AI','Werkgroepen','Takenverdeling coördinatie','Afspraken samenwerken']},
+  {name:'EVALUATIEDAGEN',items:['December','Maart','Juni']},
+  {name:'COACHGESPREK TEMPLATES',items:[]}
+];
 const checkinSuggestions=[
   'Wat geeft je vandaag energie?',
   'Waar kijk je vandaag het meest naar uit?',
@@ -144,10 +203,97 @@ const checkinSuggestions=[
   'Wat zou vandaag net iets gemakkelijker maken?',
   'Met welk woord zou je je ochtend omschrijven?'
 ];
+async function loadLinks(){
+  if(!sb)return JSON.parse(localStorage.getItem('ochtendkring_links')||'[]');
+  const {data,error}=await sb.from('reading_items').select('id,content,created_at,created_by').eq('title',LINK_SENTINEL).order('created_at');
+  if(error)throw error;
+  const rows=(data||[]).map(x=>{try{return {...JSON.parse(x.content),id:x.id,created_at:x.created_at,created_by:x.created_by}}catch(e){return null}}).filter(Boolean);
+  if(!rows.length&&!linksInitialized){
+    linksInitialized=true;
+    const {data:sessionData}=await sb.auth.getSession();
+    const u=sessionData?.session?.user;
+    if(u){
+      const records=[];
+      for(const cat of DEFAULT_LINK_CATEGORIES){
+        const catId=uid();
+        records.push({id:catId,kind:'category',name:cat.name});
+        for(const name of cat.items)records.push({id:uid(),kind:'item',categoryId:catId,name,url:''});
+      }
+      const payload=records.map(x=>({meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify(x)}));
+      const {error:seedError}=await sb.from('reading_items').insert(payload);
+      if(seedError)throw seedError;
+      return records;
+    }
+  }
+  return rows;
+}
+async function renderLinks(){
+  const el=$('#linksContent');if(!el)return;
+  try{
+    const rows=await loadLinks();
+    const cats=rows.filter(x=>x.kind==='category');
+    const items=rows.filter(x=>x.kind==='item');
+    if(!cats.length){el.innerHTML='<div class="archive-empty">Nog geen categorieën. Voeg er hieronder één toe.</div>';return}
+    el.innerHTML=cats.map(cat=>{
+      const catItems=items.filter(x=>x.categoryId===cat.id);
+      return '<article class="link-category"><div class="link-category-head"><h3>'+esc(cat.name)+'</h3><div class="link-category-actions"><button class="link-add-item secondary" data-category="'+esc(cat.id)+'" type="button">+ link</button><button class="link-delete-category icon-btn" data-id="'+esc(cat.id)+'" title="Categorie verwijderen">×</button></div></div>'+
+        (catItems.length?'<div class="link-list">'+catItems.map(item=>'<div class="link-row">'+(item.url?'<a class="team-link" href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer"><span class="link-icon">↗</span><span>'+esc(item.name)+'</span></a>':'<span class="team-link link-missing"><span class="link-icon">↗</span><span>'+esc(item.name)+'<small>Link nog niet ingesteld</small></span></span>')+
+        '<div class="link-row-actions"><button class="link-edit" data-id="'+esc(item.id)+'" type="button">Bewerken</button><button class="link-delete" data-id="'+esc(item.id)+'" type="button">Verwijderen</button></div></div>').join('')+'</div>':'<div class="link-empty">Nog geen links in deze categorie.</div>')+
+        '</article>';
+    }).join('');
+    $('.link-edit').forEach(b=>b.onclick=()=>openLinkDialog('item',b.dataset.id));
+    $('.link-delete').forEach(b=>b.onclick=()=>deleteLinkRecord(b.dataset.id));
+    $('.link-add-item').forEach(b=>b.onclick=()=>openLinkDialog('item',null,b.dataset.category));
+    $('.link-delete-category').forEach(b=>b.onclick=()=>deleteCategory(b.dataset.id));
+  }catch(error){console.error('Links laden:',error);el.innerHTML='<div class="archive-empty">De links konden niet worden geladen: '+esc(error.message||error)+'</div>'}
+}
+async function saveLinkRecord(mode){
+  const name=$('#linkName').value.trim(),url=$('#linkUrl').value.trim(),categoryId=$('#linkCategory').value,editId=$('#linkEditId').value;
+  if(!name)return;
+  const {data:sessionData}=await sb.auth.getSession();const u=sessionData?.session?.user;
+  if(!u){alert('Je bent niet ingelogd.');return}
+  if(mode==='category'){
+    const payload={meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify({id:uid(),kind:'category',name})};
+    const {error}=await sb.from('reading_items').insert(payload);if(error){alert('Opslaan mislukt: '+error.message);return}
+  }else{
+    if(url&&!/^https?:\\/\\//i.test(url)){alert('Gebruik een volledige URL, bijvoorbeeld https://...');return}
+    const obj={id:editId||uid(),kind:'item',categoryId,name,url};
+    const payload={meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify(obj)};
+    const query=editId?sb.from('reading_items').update(payload).eq('id',editId):sb.from('reading_items').insert(payload);
+    const {error}=await query;if(error){alert('Opslaan mislukt: '+error.message);return}
+  }
+  $('#linkDialog').close();await renderLinks();
+}
+async function deleteLinkRecord(id){
+  if(!confirm('Deze link verwijderen?'))return;
+  const {error}=await sb.from('reading_items').delete().eq('id',id);if(error){alert('Verwijderen mislukt: '+error.message);return}await renderLinks();
+}
+async function deleteCategory(id){
+  if(!confirm('Deze categorie en alle links erin verwijderen?'))return;
+  const rows=await loadLinks(),ids=rows.filter(x=>x.id===id||x.categoryId===id).map(x=>x.id);
+  if(ids.length){const {error}=await sb.from('reading_items').delete().in('id',ids);if(error){alert('Verwijderen mislukt: '+error.message);return}}
+  await renderLinks();
+}
+function openLinkDialog(mode='item',editId=null,categoryId=''){
+  $('#linkMode').value=mode;$('#linkEditId').value=editId||'';
+  const dialog=$('#linkDialog'),catSelect=$('#linkCategory'),url=$('#linkUrl');
+  const rows=window.__teamLinks||[];
+  const cats=rows.filter(x=>x.kind==='category');
+  catSelect.innerHTML=cats.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
+  $('#linkDialogTitle').textContent=mode==='category'?'Categorie toevoegen':(editId?'Link bewerken':'Link toevoegen');
+  $('#linkCategoryLabel').classList.toggle('hidden',mode==='category');
+  $('#linkUrlLabel').classList.toggle('hidden',mode==='category');
+  $('#linkCategory').required=mode!=='category';$('#linkUrl').required=false;
+  $('#linkName').value='';url.value='';
+  if(editId){
+    const item=rows.find(x=>x.id===editId);if(item){$('#linkName').value=item.name||'';url.value=item.url||'';catSelect.value=item.categoryId||''}
+  }else if(categoryId)catSelect.value=categoryId;
+  dialog.showModal();
+}
 async function loadItems(type,date=currentDate){
   if(!sb)return demo[key(date,type)]||[];
   if(type==='discuss'){const {data,error}=await sb.from('discussion_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.title,discussed:x.is_discussed,author_name:''}));}
-  if(type==='read'){const {data,error}=await sb.from('reading_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).filter(x=>x.title!==CHECKIN_SENTINEL).map(x=>({...x,text:x.title,author_name:''}));}
+  if(type==='read'){const {data,error}=await sb.from('reading_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).filter(x=>x.title!==CHECKIN_SENTINEL&&x.title!==LINK_SENTINEL).map(x=>({...x,text:x.title,author_name:''}));}
   const {data,error}=await sb.from('sync_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.reason?x.colleague_name+' · '+x.reason:x.colleague_name,discussed:x.is_done,author_name:''}));
 }
 function suggestedCheckin(date=currentDate){return checkinSuggestions[Math.abs([...date].reduce((n,c)=>n+c.charCodeAt(0),0))%checkinSuggestions.length]}
@@ -226,7 +372,7 @@ if(type==='discuss'){const action=document.createElement('button');action.classN
 if(type==='sync'){const action=document.createElement('button');action.className='discussed-toggle '+(item.discussed?'is-done':'');action.textContent=item.discussed?'Afgerond ✓':'Markeer als afgerond';action.onclick=()=>updateItem(type,item.id,{discussed:!item.discussed});main.prepend(action)}
 el.append(node)})}
 function drawAnnouncements(items){const visible=currentGrade==='all'?items:items.filter(a=>a.grade==='all'||a.grade===currentGrade);const el=$('#announcementList');el.innerHTML='';if(!visible.length){el.innerHTML='<li class="empty">Nog geen mededelingen voor deze selectie.</li>';return}visible.forEach(a=>{const li=document.createElement('li');li.className='item';li.innerHTML=`<div class="item-main"><span class="item-text">${esc(a.text)}</span><span class="meta"><span class="audience">${esc(labels[a.grade])}</span> · ${esc(a.author_name||'')} ${a.created_at?'· '+new Date(a.created_at).toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}):''}</span></div><button class="delete" title="Verwijderen">×</button>`;li.querySelector('.delete').onclick=()=>deleteAnnouncement(a.id);el.append(li)})}
-async function render(){try{const [d,r,s,a]=await Promise.all([loadItems('discuss'),loadItems('read'),loadItems('sync'),loadAnnouncements()]);drawList($('#listDiscuss'),d,'discuss');drawList($('#listRead'),r,'read');drawList($('#listSync'),s,'sync');drawAnnouncements(a);$('#countDiscuss').textContent=d.length;$('#countRead').textContent=r.length;$('#countSync').textContent=s.length;setStatus('online')}catch(e){console.error(e);setStatus('offline');}}
+async function render(){try{const [d,r,s,a]=await Promise.all([loadItems('discuss'),loadItems('read'),loadItems('sync'),loadAnnouncements()]);drawList($('#listDiscuss'),d,'discuss');drawList($('#listRead'),r,'read');drawList($('#listSync'),s,'sync');drawAnnouncements(a);$('#countDiscuss').textContent=d.length;$('#countRead').textContent=r.length;$('#countSync').textContent=s.length;await renderLinks();setStatus('online')}catch(e){console.error(e);setStatus('offline');}}
 function setStatus(state){const el=$('#syncStatus');el.className='status-dot '+state;el.title=state==='online'?'Verbonden':'Offline / fout'}
 async function handleGoogleCredential(response){
   try{
@@ -405,6 +551,13 @@ document.getElementById('logoutBtn').addEventListener('click',()=>{
   }
   window.location.replace(window.location.pathname+'?logout=1');
 });
+document.getElementById('morningTab').addEventListener('click',()=>{ $('#morningTab').classList.add('active');$('#linksTab').classList.remove('active');$('#morningView').classList.remove('hidden');$('#linksView').classList.add('hidden'); });
+document.getElementById('linksTab').addEventListener('click',async()=>{ $('#linksTab').classList.add('active');$('#morningTab').classList.remove('active');$('#morningView').classList.add('hidden');$('#linksView').classList.remove('hidden'); window.__teamLinks=await loadLinks(); await renderLinks(); });
+document.getElementById('addCategoryBtn').addEventListener('click',async()=>{window.__teamLinks=await loadLinks();openLinkDialog('category')});
+document.getElementById('addLinkBtn').addEventListener('click',async()=>{window.__teamLinks=await loadLinks();if(!window.__teamLinks.some(x=>x.kind==='category')){alert('Maak eerst een categorie aan.');return}openLinkDialog('item')});
+$('#closeLinkDialog').onclick=()=>$('#linkDialog').close();
+$('#cancelLink').onclick=()=>$('#linkDialog').close();
+$('#linkForm').addEventListener('submit',async e=>{e.preventDefault();await saveLinkRecord($('#linkMode').value)});
 document.getElementById('weekBtn').addEventListener('click',async(e)=>{e.preventDefault();try{await weekOverview()}catch(error){console.error('Weekoverzicht:',error);alert('Weekoverzicht kon niet worden geopend: '+(error.message||error));}});
 $('#searchForm').addEventListener('submit',e=>{e.preventDefault();searchAll($('#searchInput').value)});
 $('#closeSearch').onclick=()=>$('#searchDialog').close();
