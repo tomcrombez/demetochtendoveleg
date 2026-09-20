@@ -239,7 +239,14 @@ async function renderLinks(){
         '<div class="link-row-actions"><button class="link-edit" data-id="'+esc(item.id)+'" type="button">Bewerken</button><button class="link-delete" data-id="'+esc(item.id)+'" type="button">Verwijderen</button></div></div>').join('')+'</div>':'<div class="link-empty">Nog geen links in deze categorie.</div>')+
         '</article>';
     }).join('');
-    Array.from(document.querySelectorAll('.link-collapse')).forEach(b=>b.onclick=()=>{
+    Array.from(document.querySelectorAll('.link-category')).forEach((cat,index)=>{
+      if(index>=4){
+        cat.classList.add('collapsed');
+        const b=cat.querySelector('.link-collapse');
+        if(b){b.textContent='▸';b.setAttribute('aria-expanded','false');b.title='Categorie uitklappen';}
+      }
+    });
+    Array.from(document.querySelectorAll('.link-collapse')).forEach(b=>{
       const cat=b.closest('.link-category');
       const list=cat?.querySelector('.link-list,.link-empty');
       if(!cat||!list)return;
