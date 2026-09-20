@@ -290,10 +290,6 @@ h3 { margin: 3px 0 0; font-size: 18px; letter-spacing: -.025em; }
 .link-row:active{cursor:grabbing}
 .link-row.is-dragging{opacity:.45}
 .link-category.drag-over{outline:2px dashed var(--met);outline-offset:2px;background:var(--met-soft)}
-.link-category-head h3{display:flex;align-items:center;gap:7px}
-.link-collapse{border:0;background:transparent;color:var(--met);font:inherit;font-size:15px;font-weight:900;line-height:1;cursor:pointer;padding:2px}
-.link-category.collapsed .link-list,.link-category.collapsed .link-empty{display:none}
-.link-category.collapsed .link-category-head{border-bottom:0}
 .link-category.drag-over .link-category-head{background:#e7f3ef}
 .link-row:last-child{border-bottom:0}
 .team-link{display:flex;align-items:center;gap:9px;min-width:0;flex:1;color:var(--ink);text-decoration:none;font-size:13px;font-weight:650}
