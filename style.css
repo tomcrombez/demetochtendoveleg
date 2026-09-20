@@ -47,7 +47,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   z-index: 5;
 }
 .brand, .top-actions, .section-title, .date-row, .hero-tools { display: flex; align-items: center; }
-.brand { gap: 11px; }
+.brand { gap: 11px; }\n.brand-link { color: inherit; text-decoration: none; }\n.brand-link:hover { color: inherit; text-decoration: none; }
 .brand-mark {
   display: grid;
   place-items: center;
