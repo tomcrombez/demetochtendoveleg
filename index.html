@@ -147,7 +147,9 @@ let forcedLoggedOut=localStorage.getItem(LOGOUT_STORAGE_KEY)==='1'||localStorage
 let currentDate=initialDate(); let currentGrade='all';
 let demo=JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY)||localStorage.getItem(LEGACY_DEMO_STORAGE_KEY)||'{}');
 let channel=null;
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let accessDenied=false;
+let accessConfigError=false;
+const $=s=>document.querySelector(s), $=s=>[...document.querySelectorAll(s)];
 const labels={all:'Iedereen',first:'1e graad',second:'2e graad',third:'3e graad'};
 function localDate(){const d=new Date(),off=d.getTimezoneOffset();return new Date(d.getTime()-off*60000).toISOString().slice(0,10)}
 function dateObj(ds){return new Date(ds+"T12:00:00")} function dateString(d){return d.toISOString().slice(0,10)}
@@ -170,7 +172,44 @@ async function getUser(){
     return null;
   }
 }
-async function requireLogin(){const u=await getUser();if(!u){alert('Log eerst in met je Google-account.');return false}return true}
+async function verifyUserAccess(user){
+  if(!user?.email)return false;
+  const {data,error}=await sb.rpc('is_ochtendoverleg_allowed');
+  if(error){
+    console.error('Toegangscontrole Ochtendoverleg mislukt:',error);
+    accessConfigError=true;
+    return false;
+  }
+  accessConfigError=false;
+  return data===true;
+}
+async function enforceUserAccess(){
+  const u=await getUser();
+  if(!u)return null;
+  const allowed=await verifyUserAccess(u);
+  if(!allowed){
+    accessDenied=!accessConfigError;
+    forcedLoggedOut=true;
+    localStorage.setItem(LOGOUT_STORAGE_KEY,'1');
+    try{await sb.auth.signOut()}catch(error){}
+    return null;
+  }
+  accessDenied=false;
+  return u;
+}
+async function requireLogin(){
+  const u=await getUser();
+  if(!u){alert('Log eerst in met je Google-account.');return false}
+  const allowed=await verifyUserAccess(u);
+  if(!allowed){
+    accessDenied=!accessConfigError;
+    alert(accessConfigError
+      ? 'De toegangscontrole is nog niet geconfigureerd. Voer eerst de Supabase-instellingen uit.'
+      : 'Dit Google-account heeft geen toegang tot het Ochtendoverleg.');
+    return false;
+  }
+  return true;
+}
 const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items'};
 const CHECKIN_SENTINEL='__OCHTENDOVERLEG_CHECKIN__';
 const LEGACY_CHECKIN_SENTINEL='__OCHTENDKRING_CHECKIN__';
@@ -373,6 +412,16 @@ async function handleGoogleCredential(response){
       token:response.credential
     });
     if(error) throw error;
+    const allowedUser=await enforceUserAccess();
+    if(!allowedUser){
+      await refreshAuth();
+      if(accessConfigError){
+        alert('De toegangscontrole is nog niet geconfigureerd. Voer eerst de Supabase-instellingen uit.');
+      }else{
+        alert('Dit Google-account heeft geen toegang tot het Ochtendoverleg.');
+      }
+      return;
+    }
     await refreshAuth();
     await render();
     await renderCheckin();
@@ -405,7 +454,24 @@ function initGoogleSignIn(){
 }
 window.onGoogleLibraryLoad=initGoogleSignIn;
 setTimeout(initGoogleSignIn,1000);
-async function refreshAuth(){const u=await getUser();$('#googleSignIn').classList.toggle('hidden',!!u);$('#googleDirectLogin').classList.toggle('hidden',!!u);$('#logoutBtn').classList.toggle('hidden',!u);$('#loginNotice').classList.toggle('hidden',!!u);setStatus(u?'online':'offline')}
+async function refreshAuth(){
+  let u=await getUser();
+  if(u)u=await enforceUserAccess();
+  $('#googleSignIn').classList.toggle('hidden',!!u);
+  $('#googleDirectLogin').classList.toggle('hidden',!!u);
+  $('#logoutBtn').classList.toggle('hidden',!u);
+  const notice=$('#loginNotice');
+  notice.classList.toggle('hidden',!!u);
+  if(!u){
+    notice.textContent=accessConfigError
+      ? 'De toegangscontrole is nog niet geconfigureerd.'
+      : accessDenied
+        ? 'Dit Google-account heeft geen toegang tot het Ochtendoverleg.'
+        : 'Log in met je Google-account om als team te werken.';
+  }
+  setStatus(u?'online':'offline');
+  return u;
+}
 function subscribe(){if(channel)sb.removeChannel(channel);channel=sb.channel('ochtendoverleg-live').on('postgres_changes',{event:'*',schema:'public',table:'discussion_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'reading_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'sync_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'announcements'},()=>render()).subscribe(s=>setStatus(s==='SUBSCRIBED'?'online':'offline'))}
 async function weekDates(baseDate=currentDate){const base=mondayOf(baseDate),rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);rows.push(dateString(d))}return rows}
 function archiveWeeksFromDates(dates){const currentWeek=weekKey(currentDate);return [...new Set(dates.map(weekKey))].filter(w=>w<currentWeek).sort((a,b)=>b.localeCompare(a))}
@@ -560,17 +626,19 @@ sb.auth.onAuthStateChange(async (event)=>{
   if(event==='SIGNED_IN'){
     forcedLoggedOut=false;
     localStorage.removeItem(LOGOUT_STORAGE_KEY);localStorage.removeItem(LEGACY_LOGOUT_STORAGE_KEY);
-    await refreshAuth();
+    const u=await refreshAuth();
+    if(!u)return;
     await render();
     await renderCheckin();
     subscribe();
   }
 });
 (async()=>{
-  await refreshAuth();
+  const u=await refreshAuth();
+  if(!u)return;
   await render();
   await renderCheckin();
-  if(await getUser())subscribe();
+  subscribe();
 })();
 </script>
 <!-- Vercel deployment trigger 2026-09-20 -->
