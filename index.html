@@ -241,10 +241,10 @@ async function renderLinks(){
         '<div class="link-row-actions"><button class="link-edit" data-id="'+esc(item.id)+'" type="button">Bewerken</button><button class="link-delete" data-id="'+esc(item.id)+'" type="button">Verwijderen</button></div></div>').join('')+'</div>':'<div class="link-empty">Nog geen links in deze categorie.</div>')+
         '</article>';
     }).join('');
-    $('.link-edit').forEach(b=>b.onclick=()=>openLinkDialog('item',b.dataset.id));
-    $('.link-delete').forEach(b=>b.onclick=()=>deleteLinkRecord(b.dataset.id));
-    $('.link-add-item').forEach(b=>b.onclick=()=>openLinkDialog('item',null,b.dataset.category));
-    $('.link-delete-category').forEach(b=>b.onclick=()=>deleteCategory(b.dataset.id));
+    Array.from(document.querySelectorAll('.link-edit')).forEach(b=>b.onclick=()=>openLinkDialog('item',b.dataset.id));
+    Array.from(document.querySelectorAll('.link-delete')).forEach(b=>b.onclick=()=>deleteLinkRecord(b.dataset.id));
+    Array.from(document.querySelectorAll('.link-add-item')).forEach(b=>b.onclick=()=>openLinkDialog('item',null,b.dataset.category));
+    Array.from(document.querySelectorAll('.link-delete-category')).forEach(b=>b.onclick=()=>deleteCategory(b.dataset.id));
   }catch(error){console.error('Links laden:',error);el.innerHTML='<div class="archive-empty">De links konden niet worden geladen: '+esc(error.message||error)+'</div>'}
 }
 async function saveLinkRecord(mode){
