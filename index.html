@@ -2,26 +2,26 @@
 <html lang="nl">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ochtendkring · Teamruimte</title>
+<title>Ochtendoverleg · Teamruimte</title>
 <link rel="stylesheet" href="style.css">
 
 
 </head>
 <body>
 <header class="topbar">
-  <a class="brand brand-link" href="/" aria-label="Naar de homepage"><span class="brand-mark" aria-hidden="true">M</span><div><span class="eyebrow">De MET · teamruimte</span><h1>Ochtendkring</h1></div></a>
+  <a class="brand brand-link" href="/" aria-label="Naar de homepage"><span class="brand-mark" aria-hidden="true">M</span><div><span class="eyebrow">De MET · teamruimte</span><h1>Ochtendoverleg</h1></div></a>
   <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><a id="googleDirectLogin" class="secondary hidden" href="https://krarqagmjrbvsvlcbdwd.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fochtendoverleg-app.vercel.app%2F" aria-label="Inloggen met Google">Inloggen met Google</a><div id="googleSignIn" aria-label="Inloggen met Google"></div><a id="logoutBtn" href="?logout=1" class="secondary hidden" role="button">Uitloggen</a></div>
 </header>
 <main class="container">
   <nav class="app-nav" aria-label="Teamruimte">
-    <button id="morningTab" class="app-tab active" type="button">Ochtendkring</button>
+    <button id="morningTab" class="app-tab active" type="button">Ochtendoverleg</button>
     <button id="linksTab" class="app-tab" type="button">Teamlinks</button>
   </nav>
   <div id="morningView">  <section class="hero card">
     <div class="hero-copy">
       <span class="hero-kicker">Dagstart · samen scherp</span>
       <div class="date-row"><button id="prevDay" class="icon-btn" aria-label="Vorige dag">←</button><input id="datePicker" type="date" aria-label="Datum"><button id="nextDay" class="icon-btn" aria-label="Volgende dag">→</button><button id="todayBtn" class="secondary">Vandaag</button></div>
-      <h2 id="dayTitle">Ochtendkring</h2><p class="muted">Samen bepalen wat vandaag besproken, gelezen of gesynchroniseerd moet worden.</p>
+      <h2 id="dayTitle">Ochtendoverleg</h2><p class="muted">Samen bepalen wat vandaag besproken, gelezen of gesynchroniseerd moet worden.</p>
     </div>
     <div class="hero-tools"><div class="hero-tool-row"><button id="weekBtn" class="secondary week-button"><span aria-hidden="true">▦</span> Weekoverzicht</button><button id="archiveBtn" class="secondary"><span aria-hidden="true">🗂</span> Archief</button></div><form id="searchForm" class="search-form" role="search"><input id="searchInput" type="search" placeholder="Zoek in alle overleginfo…" aria-label="Zoek in alle overleginfo"><button class="primary" type="submit">Zoeken</button></form></div>
   </section>
@@ -62,7 +62,7 @@
   </section>
 
   <section class="card announcements announcement-card">
-    <div class="section-head"><div class="section-title"><span class="section-icon pupils-icon" aria-hidden="true">✦</span><div><span class="tag pupils">OCHTENDKRING</span><h3>Mededelingen voor leerlingen</h3><p class="section-description">Een heldere boodschap voor elke doelgroep</p></div></div><span class="muted small">Kies voor wie de mededeling is</span></div>
+    <div class="section-head"><div class="section-title"><span class="section-icon pupils-icon" aria-hidden="true">✦</span><div><span class="tag pupils">OCHTENDOVERLEG</span><h3>Mededelingen voor leerlingen</h3><p class="section-description">Een heldere boodschap voor elke doelgroep</p></div></div><span class="muted small">Kies voor wie de mededeling is</span></div>
     <div class="tabs" role="tablist"><button class="tab active" data-grade="all">Iedereen</button><button class="tab" data-grade="first">1e graad</button><button class="tab" data-grade="second">2e graad</button><button class="tab" data-grade="third">3e graad</button></div>
     <form id="announcementForm" class="announcement-form"><select id="announcementGrade" aria-label="Voor wie?"><option value="all">Iedereen</option><option value="first">1e graad</option><option value="second">2e graad</option><option value="third">3e graad</option></select><input id="announcementInput" required maxlength="220" placeholder="Wat moeten de leerlingen weten?"><button class="primary">Mededeling toevoegen</button></form>
     <ul id="announcementList" class="item-list"></ul>
@@ -139,8 +139,14 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
     flowType:'implicit'
   }
 });
-let forcedLoggedOut=localStorage.getItem('ochtendkring_logged_out')==='1';
-let currentDate=initialDate(); let currentGrade='all'; let demo=JSON.parse(localStorage.getItem('ochtendkring_demo')||'{}'); let channel=null;
+const LOGOUT_STORAGE_KEY='ochtendoverleg_logged_out';
+const LEGACY_LOGOUT_STORAGE_KEY='ochtendkring_logged_out';
+const DEMO_STORAGE_KEY='ochtendoverleg_demo';
+const LEGACY_DEMO_STORAGE_KEY='ochtendkring_demo';
+let forcedLoggedOut=localStorage.getItem(LOGOUT_STORAGE_KEY)==='1'||localStorage.getItem(LEGACY_LOGOUT_STORAGE_KEY)==='1';
+let currentDate=initialDate(); let currentGrade='all';
+let demo=JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY)||localStorage.getItem(LEGACY_DEMO_STORAGE_KEY)||'{}');
+let channel=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const labels={all:'Iedereen',first:'1e graad',second:'2e graad',third:'3e graad'};
 function localDate(){const d=new Date(),off=d.getTimezoneOffset();return new Date(d.getTime()-off*60000).toISOString().slice(0,10)}
@@ -166,8 +172,10 @@ async function getUser(){
 }
 async function requireLogin(){const u=await getUser();if(!u){alert('Log eerst in met je Google-account.');return false}return true}
 const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items'};
-const CHECKIN_SENTINEL='__OCHTENDKRING_CHECKIN__';
-const LINK_SENTINEL='__OCHTENDKRING_LINK__';
+const CHECKIN_SENTINEL='__OCHTENDOVERLEG_CHECKIN__';
+const LEGACY_CHECKIN_SENTINEL='__OCHTENDKRING_CHECKIN__';
+const LINK_SENTINEL='__OCHTENDOVERLEG_LINK__';
+const LEGACY_LINK_SENTINEL='__OCHTENDKRING_LINK__';
 let linksInitialized=false;
 const DEFAULT_LINK_CATEGORIES=JSON.parse(`[{"name":"KALENDERS","items":[{"name":"Kalender 2026-2027","url":"https://docs.google.com/spreadsheets/d/1kojORWnhRuSS1pruELzubh01tvmhscsB0jcrGaT8aTg/edit?gid=1626193747#gid=1626193747"},{"name":"Lessenroosters","url":"https://docs.google.com/spreadsheets/d/1OFmzCZrOTFiYug1R4NKfx7bvF8-PwWn4tOcHAHZct9A/edit?gid=0#gid=0"},{"name":"MET structuur jaarplanning Aurélie","url":"https://docs.google.com/spreadsheets/d/1HnG0ilDlu_-w_AYAf8TuCUYeY-jZzgYxHUiYZLhPqcs/edit?gid=0#gid=0"},{"name":"Keuken kuisen","url":"https://docs.google.com/document/d/1UmQITU3tl81_5ft1IX3g3rZiBPkVnrn3CnPWYXv_8sA/edit?tab=t.0"},{"name":"Zomeroverleg 2025-2026","url":""},{"name":"Schooljte openen","url":"https://docs.google.com/document/d/1Fc4PlXYs1UkxyPtvv2teF63Ssnw4O0kJhl_OgTmbf0/edit?tab=t.0#heading=h.qnlf5fnhw2i"},{"name":"Samwerkingsruimtes template","url":"https://docs.google.com/spreadsheets/d/1HXRIzk4s-dDguaUfw0-hvbe5dPvVQsXrWWT9w4xWuWE/edit?gid=0#gid=0"}]},{"name":"KRINGEN","items":[{"name":"Toezichten/kringen TW 26-27 (nog niet klaar)","url":"https://docs.google.com/spreadsheets/d/1G_xBptQX6x3weBD_IAb-MHrzKIT9wX-1BkAa_8X-65k/edit?gid=133177732#gid=133177732"},{"name":"Kringen 26-27 (eerste graad)","url":"https://docs.google.com/spreadsheets/d/1GYLgq8ggzcM-Wykpgj8tGaJyYy8KVZT6/edit?gid=1516164669#gid=1516164669"},{"name":"Kringen 26-27 (tweede graad) / derde graad","url":"https://docs.google.com/spreadsheets/d/1EMUproKGg3txG5LvZjJ7f1iMEPHH3B8A/edit?gid=1516164669#gid=1516164669"},{"name":"Feedback Kring 9 - Kangoe-Rex / evaluatie Kring 10 Narwal","url":"https://docs.google.com/document/d/1Id4gl5cQV7IwlGtI2VPSccaVS_WUw8WomJnMJyesrjE/edit?usp=sharing"},{"name":"Feedback Kring 8","url":"https://docs.google.com/document/d/1DFUMsbg5jyiYCdF35gDSY1DzYY-LK0FWsoO5KkNLxP8/edit?usp=sharing"},{"name":"Check-in vragen en alternatieve invulling","url":"https://docs.google.com/document/d/1OAhQG5aKrOX-kjc1b0rs6-8Tj1aDKOJwy7J9sTXA5_s/edit"},{"name":"Om lln andere plaatsen te geven in de kring","url":"https://docs.google.com/document/d/1C-JpYxrPuDVoHeUuUzj4By1aTMfpq11keBkFBaftgpk/edit?tab=t.0#heading=h.so1e10p1g0o6"},{"name":"Grej of the day","url":""},{"name":"Ideeën PAC (vooral eerste graad)","url":"https://docs.google.com/document/d/1RhnsFwWn5fqVSAg5SsZUaKJ3B3NX1qrYk7nfMqIga7s/edit?tab=t.0"},{"name":"Hybridedag '25-'26","url":""}]},{"name":"LEERLINGENLIJSTEN EN LEERKRACHTENLIJSTEN","items":[{"name":"LLlijst en database Wouter","url":"https://docs.google.com/spreadsheets/d/1UlB60mOnA9aledU-liwf2-3y8TBFgpD9td8ijob5NKI/edit?gid=0#gid=0"},{"name":"LLlijst infofiches 1A en 1B","url":""},{"name":"LLlijst met bliksems","url":"https://docs.google.com/spreadsheets/d/1w9ILZNyCt8ToroqQzA1Esr1fa1rq6Gi1ta_89cFxiKk/edit?gid=0#gid=0"},{"name":"Buddyverdeling","url":""},{"name":"Aanwezigheden SPORT","url":"https://drive.google.com/file/d/1InEMjQzJpMsmQfPOyNfM2sukNcA5s8MD/view?usp=sharing"},{"name":"Adressenlijst team","url":"https://docs.google.com/document/d/1IxDJjVjfQOMN6Jp-AfVwo5_MwBFknB4Br9Ml_D9-C7U/edit?tab=t.0"}]},{"name":"Mailinglijst ouders","items":[{"name":"Mailinglijst ouders","url":"https://docs.google.com/spreadsheets/d/19WBHqx2EsUK_uTmhRp2HJnKRFkIB4d5ozZQ7qeRwxLc/edit?usp=sharing"}]},{"name":"Boeken bijhouden door leerlingen","items":[{"name":"Boeken bijhouden door leerlingen","url":"https://docs.google.com/document/d/1eAyFqR0o5X_CFfLQE3DipzT1IVlWJqJ6q8zNkr7jf_M/edit?usp=sharing"}]},{"name":"ZORG & LEERSTEUN","items":[{"name":"LLoverleg","url":"https://docs.google.com/spreadsheets/d/1bXxsUjg-WKssx1OGpmvbEHADRuCFKj7K/edit?usp=sharing&ouid=110694666100308093108&rtpof=true&sd=true"},{"name":"Bednet wachtwoorden","url":""},{"name":"Overzicht zorg alle lln","url":"https://docs.google.com/spreadsheets/d/1pMpLGfsku1Cln6uB7lzrxnyjfrch_WUSNo9sWhAQNwk/edit?usp=drive_link"},{"name":"Nieuwe werking leersteun","url":"https://www.youtube.com/watch?v=bsCPviAYaXc"},{"name":"Stageactiviteiten","url":""},{"name":"Agenda vrije leerlingen","url":""}]},{"name":"ACTIVITEITEN","items":[{"name":"Gouden Weken","url":"https://docs.google.com/document/d/1pnK6f_VnrFeqjiwyVEFZ_Rv0G-cE1ytUl74js5JyrXo/edit?tab=t.lloochw5sooz#heading=h.5sqgbx3oa4cy"},{"name":"Themaweek","url":""},{"name":"Hybridedag","url":""},{"name":"Meerdaagse, begeleiding","url":""},{"name":"Zilveren week","url":""},{"name":"Uitstappen dit schooljaar","url":"https://docs.google.com/document/d/1e37YAuOLglAhmgzuY1m0zA-zX9PPUhlFO3wXqpsWnD4/edit?tab=t.jmb9epc1abb9"},{"name":"MET extra's","url":"https://docs.google.com/spreadsheets/d/1lnTZmQsQpVVIU0vLOeQnK5axWWHDs7Mm77ujFHsAi0Y/edit?gid=0#gid=0"},{"name":"Infoavonden","url":"https://docs.google.com/document/d/1ggUGZZLEhQBtcltf4CmZ7Cf9pcY9uMYk7FZZ76JX9H4/edit?tab=t.0"},{"name":"Expertises ouders","url":"https://docs.google.com/document/d/1egMsrV7cEvuUHAzTrtPeF308rjSH-xvwVhZ4IjlxIF8/edit?tab=t.0"}]},{"name":"DE MET DOCUMENTEN & PRAKTISCH","items":[{"name":"Huisstijl","url":"https://docs.google.com/presentation/d/1ipKKwQjSaXCJWAs7IUS24R62XEyEH7Qi/edit#slide=id.p1"},{"name":"MET-raad","url":"https://docs.google.com/document/d/1HVMuvBVCl18LKU_1IyUqjxw-gi4z3jIV2YacaYzbL8s/edit?tab=t.0#heading=h.560wpsdrs52v"},{"name":"Afspraken","url":"https://docs.google.com/document/d/1w3N9x3dx5HlGpN5BfbMB51sdNhUirGWcwlvvfUxX8QE/edit?tab=t.0#heading=h.dj5uyd71fky5"},{"name":"Agenda afspraken team","url":"https://docs.google.com/presentation/d/1WfiXTWnEqnowv_9VZFVIJnT1Gom7cC4j9dBkXdr7y94/edit?slide=id.p#slide=id.p"},{"name":"Reservering samenwerkingsruimte","url":""},{"name":"WeZooz codes leerlingen","url":"https://docs.google.com/spreadsheets/d/1LYz2S-PthJYMIO4rK9clLIvKDcUeebmwxU8SOWaCZiU/edit?gid=0#gid=0"},{"name":"WeZooz inloggen / promotiecode","url":"https://www.wezoozacademy.be/promotiecode/"},{"name":"Afspraakplanning maken","url":""},{"name":"Feedbackdoc aan coachee koppelen","url":"https://docs.google.com/document/d/14SEW3VIpeUiPbrF4sjtNn7uPD44XkfEdL2IVg-FNmXE/edit"},{"name":"Werkdoc voor de werkgroepen en klein overleg","url":"https://docs.google.com/document/d/1NM-cOn5rjcGbfZLZ2LfX4oiWIGQvxtPXk5lQXowFCYc/edit?tab=t.lloochw5sooz"},{"name":"Driver werkgroepen","url":"https://docs.google.com/document/d/1K7VbufJHZGV6EyefBjlHC7AeoR3oAR8kWaskNU6CoM8/edit?tab=t.9iqwhm49vi45"},{"name":"Visitiaties","url":""},{"name":"Driehoeksgesprekken inplannen","url":""},{"name":"AI","url":""},{"name":"Werkgroepen","url":"https://docs.google.com/document/d/1K7VbufJHZGV6EyefBjlHC7AeoR3oAR8kWaskNU6CoM8/edit?tab=t.lloochw5sooz"},{"name":"Takenverdeling coördinatie","url":""},{"name":"Afspraken samenwerken","url":"https://docs.google.com/document/d/1MM9x_MmcoNGgqHVlh3ayh2qxIIschU9lI-8CB-GR1BQ/edit?tab=t.0#heading=h.vube7pumlznk"}]},{"name":"EVALUATIEDAGEN","items":[{"name":"December","url":""},{"name":"Maart","url":""},{"name":"Juni","url":"https://docs.google.com/document/d/11WC1aDCm4Joydb5Zyp7WJewafT1CxoYM/edit"},{"name":"Planning juni","url":"https://docs.google.com/spreadsheets/d/1tU2UzIBVno22b8q4xyCXHtxcK_GNTEbHsg2aV52Q1eI/edit?gid=1820640911#gid=1820640911"}]},{"name":"COACHGESPREK TEMPLATES","items":[{"name":"Template coachgesprek VOORNAAM NAAM","url":"https://docs.google.com/document/d/1fmuTyiQc3BMSN_u61IZqIPAH48XFT3H5Yz9PL56gMuc/edit?tab=t.0"},{"name":"Template coachgesprek Verticaal VOORNAAM NAAM","url":"https://docs.google.com/spreadsheets/d/1ttxakUoW2P_fRypMomM7SwWxZ-0pqT4RB2AXUIO-Bos/edit?gid=0#gid=0"},{"name":"template COACHGESPREK VOORNAAM NAAM","url":"https://docs.google.com/spreadsheets/d/1J8k-U5aEx9p6OySQegpOeMJLgcXHeX3pcTu6BsNsqfU/edit?gid=1412406155#gid=1412406155"},{"name":"Sjabloon notities challenge","url":"https://docs.google.com/document/d/1G7Nw6w5tqa6ekfrHsBV8GMY19sK7A0qcIyB-d933YlE/edit"},{"name":"bewijsje","url":""}]},{"name":"POETSIE POETSIE AFSPRAKEN","items":[{"name":"Onderhoud whiteboard","url":"https://docs.google.com/document/d/1yTKxhdyEZ2LshAm29K6NEZZflD50UFa0HcivNhTjvVoM/edit?tab=t.0#heading=h.49ukior1djie"}]},{"name":"MEDALS AND MISSIONS","items":[]}]`);
 const checkinSuggestions=[
@@ -194,7 +202,7 @@ const checkinSuggestions=[
 ];
 async function loadLinks(){
   if(!sb)return [];
-  const {data,error}=await sb.from('reading_items').select('id,content,created_at,created_by').eq('title',LINK_SENTINEL).order('created_at');
+  const {data,error}=await sb.from('reading_items').select('id,content,created_at,created_by').in('title',[LINK_SENTINEL,LEGACY_LINK_SENTINEL]).order('created_at');
   if(error)throw error;
   let rows=(data||[]).map(x=>{try{return {...JSON.parse(x.content),id:x.id,created_at:x.created_at,created_by:x.created_by}}catch(e){return null}}).filter(Boolean);
   const {data:sessionData}=await sb.auth.getSession();
@@ -204,7 +212,7 @@ async function loadLinks(){
     const missingCats=DEFAULT_LINK_CATEGORIES.filter(cat=>!catRows.some(x=>x.name===cat.name)).map(cat=>({meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify({id:uid(),kind:'category',name:cat.name})}));
     if(missingCats.length){
       const {error:e}=await sb.from('reading_items').insert(missingCats);if(e)throw e;
-      const fresh=await sb.from('reading_items').select('id,content,created_at,created_by').eq('title',LINK_SENTINEL).order('created_at');if(fresh.error)throw fresh.error;
+      const fresh=await sb.from('reading_items').select('id,content,created_at,created_by').in('title',[LINK_SENTINEL,LEGACY_LINK_SENTINEL]).order('created_at');if(fresh.error)throw fresh.error;
       rows=(fresh.data||[]).map(x=>{try{return {...JSON.parse(x.content),id:x.id,created_at:x.created_at,created_by:x.created_by}}catch(e){return null}}).filter(Boolean);
     }
     const cats=rows.filter(x=>x.kind==='category'),missing=[],updates=[];
@@ -219,7 +227,7 @@ async function loadLinks(){
     if(missing.length){const {error:e}=await sb.from('reading_items').insert(missing);if(e)throw e}
     if(updates.length){const results=await Promise.all(updates);const failed=results.find(x=>x.error);if(failed)throw failed.error}
     if(missing.length||updates.length){
-      const fresh=await sb.from('reading_items').select('id,content,created_at,created_by').eq('title',LINK_SENTINEL).order('created_at');if(fresh.error)throw fresh.error;
+      const fresh=await sb.from('reading_items').select('id,content,created_at,created_by').in('title',[LINK_SENTINEL,LEGACY_LINK_SENTINEL]).order('created_at');if(fresh.error)throw fresh.error;
       rows=(fresh.data||[]).map(x=>{try{return {...JSON.parse(x.content),id:x.id,created_at:x.created_at,created_by:x.created_by}}catch(e){return null}}).filter(Boolean);
     }
   }
@@ -291,14 +299,14 @@ function openLinkDialog(mode='item',editId=null,categoryId=''){
 async function loadItems(type,date=currentDate){
   if(!sb)return demo[key(date,type)]||[];
   if(type==='discuss'){const {data,error}=await sb.from('discussion_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.title,discussed:x.is_discussed,author_name:''}));}
-  if(type==='read'){const {data,error}=await sb.from('reading_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).filter(x=>x.title!==CHECKIN_SENTINEL&&x.title!==LINK_SENTINEL).map(x=>({...x,text:x.title,author_name:''}));}
+  if(type==='read'){const {data,error}=await sb.from('reading_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).filter(x=>x.title!==CHECKIN_SENTINEL&&x.title!==LEGACY_CHECKIN_SENTINEL&&x.title!==LINK_SENTINEL&&x.title!==LEGACY_LINK_SENTINEL).map(x=>({...x,text:x.title,author_name:''}));}
   const {data,error}=await sb.from('sync_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.reason?x.colleague_name+' · '+x.reason:x.colleague_name,discussed:x.is_done,author_name:''}));
 }
 function suggestedCheckin(date=currentDate){return checkinSuggestions[Math.abs([...date].reduce((n,c)=>n+c.charCodeAt(0),0))%checkinSuggestions.length]}
 async function loadCheckin(date=currentDate){
   const fallback={question:suggestedCheckin(date),custom:false};
   if(!sb)return {...fallback,question:demo[key(date,'checkin')]||fallback.question,custom:!!demo[key(date,'checkin')]};
-  const {data,error}=await sb.from('reading_items').select('id,content,created_at').eq('meeting_date',date).eq('title',CHECKIN_SENTINEL).order('created_at',{ascending:false}).limit(1);
+  const {data,error}=await sb.from('reading_items').select('id,content,created_at').eq('meeting_date',date).in('title',[CHECKIN_SENTINEL,LEGACY_CHECKIN_SENTINEL]).order('created_at',{ascending:false}).limit(1);
   if(error)throw error;
   return data?.[0]?{question:data[0].content,custom:true,id:data[0].id}:fallback;
 }
@@ -307,7 +315,7 @@ async function saveCheckin(question){
   const q=question.trim();if(!q)return;
   const u=await getUser();
   if(!sb){demo[key(currentDate,'checkin')]=q;saveDemo();return renderCheckin()}
-  const {data,error}=await sb.from('reading_items').select('id').eq('meeting_date',currentDate).eq('title',CHECKIN_SENTINEL).limit(1);
+  const {data,error}=await sb.from('reading_items').select('id').eq('meeting_date',currentDate).in('title',[CHECKIN_SENTINEL,LEGACY_CHECKIN_SENTINEL]).limit(1);
   if(error){alert(error.message);return}
   if(data?.[0]){
     const r=await sb.from('reading_items').update({content:q,created_by:u.id}).eq('id',data[0].id);
@@ -321,7 +329,7 @@ async function saveCheckin(question){
 async function resetCheckin(){
   if(!await requireLogin())return;
   if(!sb){delete demo[key(currentDate,'checkin')];saveDemo();return renderCheckin()}
-  const {error}=await sb.from('reading_items').delete().eq('meeting_date',currentDate).eq('title',CHECKIN_SENTINEL);
+  const {error}=await sb.from('reading_items').delete().eq('meeting_date',currentDate).in('title',[CHECKIN_SENTINEL,LEGACY_CHECKIN_SENTINEL]);
   if(error)alert(error.message);else await renderCheckin();
 }
 async function renderCheckin(){
@@ -364,7 +372,7 @@ const dbAudience={all:'allen',first:'eerste',second:'tweede',third:'derde'};
 const uiAudience={allen:'all',eerste:'first',tweede:'second',derde:'third'};
 async function addAnnouncement(text,grade){if(!await requireLogin())return;const u=await getUser();if(!sb){const k=key(currentDate,'announcement');demo[k]=[...(demo[k]||[]),{id:uid(),text,grade,created_at:new Date().toISOString(),author_name:'Demo'}];saveDemo();return render()}const audience=dbAudience[grade]||'allen';const {error}=await sb.from('announcements').insert({meeting_date:currentDate,content:text,audience,created_by:u.id});if(error)alert(error.message);else render()}
 async function deleteAnnouncement(id){if(!await requireLogin())return;if(!sb){const k=key(currentDate,'announcement');demo[k]=(demo[k]||[]).filter(x=>x.id!==id);saveDemo();return render()}const {error}=await sb.from('announcements').delete().eq('id',id);if(error)alert(error.message);else render()}
-function saveDemo(){localStorage.setItem('ochtendkring_demo',JSON.stringify(demo))}
+function saveDemo(){localStorage.setItem(DEMO_STORAGE_KEY,JSON.stringify(demo))}
 function drawList(el,items,type){el.innerHTML='';if(!items.length){el.innerHTML='<li class="empty">Nog niets toegevoegd.</li>';return}items.forEach(item=>{const node=$('#itemTemplate').content.cloneNode(true);const main=node.querySelector('.item-main');node.querySelector('.item-text').textContent=item.text;node.querySelector('.meta').textContent=(item.author_name||'')+(item.created_at?' · '+new Date(item.created_at).toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}):'');node.querySelector('.delete').onclick=()=>deleteItem(type,item.id);
 if(type==='discuss'){const action=document.createElement('button');action.className='discussed-toggle '+(item.discussed?'is-done':'');action.textContent=item.discussed?'Besproken ✓':'Markeer als besproken';action.onclick=()=>updateItem(type,item.id,{discussed:!item.discussed});main.prepend(action);const wrap=document.createElement('div');wrap.className='notes-wrap';wrap.innerHTML='<label class="notes-label">📝 Notities na de bespreking</label><textarea class="notes-input" maxlength="2000" placeholder="Wat is afgesproken of beslist?"></textarea><div class="notes-actions"><button type="button" class="save-notes">Notities opslaan</button><span class="notes-status"></span></div>';const ta=wrap.querySelector('textarea');ta.value=item.notes||'';wrap.querySelector('.save-notes').onclick=async()=>{await updateItem(type,item.id,{notes:ta.value.trim()});wrap.querySelector('.notes-status').textContent='Opgeslagen ✓';setTimeout(()=>wrap.querySelector('.notes-status').textContent='',1500)};main.append(wrap)}
 if(type==='sync'){const action=document.createElement('button');action.className='discussed-toggle '+(item.discussed?'is-done':'');action.textContent=item.discussed?'Afgerond ✓':'Markeer als afgerond';action.onclick=()=>updateItem(type,item.id,{discussed:!item.discussed});main.prepend(action)}
@@ -374,7 +382,7 @@ async function render(){try{const [d,r,s,a]=await Promise.all([loadItems('discus
 function setStatus(state){const el=$('#syncStatus');el.className='status-dot '+state;el.title=state==='online'?'Verbonden':'Offline / fout'}
 async function handleGoogleCredential(response){
   try{
-    localStorage.removeItem('ochtendkring_logged_out');
+    localStorage.removeItem(LOGOUT_STORAGE_KEY);localStorage.removeItem(LEGACY_LOGOUT_STORAGE_KEY);
     forcedLoggedOut=false;
     const {error}=await sb.auth.signInWithIdToken({
       provider:'google',
@@ -414,7 +422,7 @@ function initGoogleSignIn(){
 window.onGoogleLibraryLoad=initGoogleSignIn;
 setTimeout(initGoogleSignIn,1000);
 async function refreshAuth(){const u=await getUser();$('#googleSignIn').classList.toggle('hidden',!!u);$('#googleDirectLogin').classList.toggle('hidden',!!u);$('#logoutBtn').classList.toggle('hidden',!u);$('#loginNotice').classList.toggle('hidden',!!u);setStatus(u?'online':'offline')}
-function subscribe(){if(channel)sb.removeChannel(channel);channel=sb.channel('ochtendkring-live').on('postgres_changes',{event:'*',schema:'public',table:'discussion_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'reading_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'sync_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'announcements'},()=>render()).subscribe(s=>setStatus(s==='SUBSCRIBED'?'online':'offline'))}
+function subscribe(){if(channel)sb.removeChannel(channel);channel=sb.channel('ochtendoverleg-live').on('postgres_changes',{event:'*',schema:'public',table:'discussion_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'reading_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'sync_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'announcements'},()=>render()).subscribe(s=>setStatus(s==='SUBSCRIBED'?'online':'offline'))}
 async function weekDates(baseDate=currentDate){const base=mondayOf(baseDate),rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);rows.push(dateString(d))}return rows}
 function archiveWeeksFromDates(dates){const currentWeek=weekKey(currentDate);return [...new Set(dates.map(weekKey))].filter(w=>w<currentWeek).sort((a,b)=>b.localeCompare(a))}
 async function archiveOverview(){
@@ -529,7 +537,7 @@ $$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('a
 $('#datePicker').onchange=e=>setDate(e.target.value);$('#prevDay').onclick=()=>moveDay(-1);$('#nextDay').onclick=()=>moveDay(1);$('#todayBtn').onclick=()=>setDate(localDate());function moveDay(n){const d=dateObj(currentDate);d.setDate(d.getDate()+n);if(d.getDay()===0)d.setDate(d.getDate()+(n>0?1:-2));if(d.getDay()===6)d.setDate(d.getDate()+(n>0?2:-1));setDate(dateString(d))}
 document.getElementById('logoutBtn').addEventListener('click',()=>{
   forcedLoggedOut=true;
-  localStorage.setItem('ochtendkring_logged_out','1');
+  localStorage.setItem(LOGOUT_STORAGE_KEY,'1');localStorage.removeItem(LEGACY_LOGOUT_STORAGE_KEY);
   $('#logoutBtn').classList.add('hidden');
   $('#googleSignIn').classList.remove('hidden');
   $('#loginNotice').classList.remove('hidden');
@@ -567,7 +575,7 @@ $('#datePicker').value=currentDate;$('#dayTitle').textContent=formatDate(current
 sb.auth.onAuthStateChange(async (event)=>{
   if(event==='SIGNED_IN'){
     forcedLoggedOut=false;
-    localStorage.removeItem('ochtendkring_logged_out');
+    localStorage.removeItem(LOGOUT_STORAGE_KEY);localStorage.removeItem(LEGACY_LOGOUT_STORAGE_KEY);
     await refreshAuth();
     await render();
     await renderCheckin();
