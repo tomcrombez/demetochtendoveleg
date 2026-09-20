@@ -371,11 +371,11 @@ async function loadCircleCoverage(date=currentDate){
     defaults[id]=slots.map(()=>({checked:false,replacement:''}));
   });
   if(!sb)return demo[key(date,'circleCoverage')]||defaults;
-  const {data,error}=await sb.from('discussion_items').select('id,content').eq('meeting_date',date).eq('title',CIRCLE_SENTINEL).order('created_at',{ascending:false}).limit(1);
+  const {data,error}=await sb.from('discussion_items').select('id,notes').eq('meeting_date',date).eq('title',CIRCLE_SENTINEL).order('created_at',{ascending:false}).limit(1);
   if(error)throw error;
-  if(!data?.[0]?.content)return defaults;
+  if(!data?.[0]?.notes)return defaults;
   try{
-    const saved=JSON.parse(data[0].content);
+    const saved=JSON.parse(data[0].notes);
     return {...defaults,...saved};
   }catch(error){
     console.warn('Kringencontrole kon niet gelezen worden:',error);
@@ -388,9 +388,9 @@ async function saveCircleCoverage(coverage){
   const u=await getUser();
   const {data,error}=await sb.from('discussion_items').select('id').eq('meeting_date',currentDate).eq('title',CIRCLE_SENTINEL).limit(1);
   if(error){alert('Kringencontrole laden mislukt: '+error.message);return false}
-  const payload={meeting_date:currentDate,title:CIRCLE_SENTINEL,notes:'',is_discussed:false,content:JSON.stringify(coverage),created_by:u.id};
+  const payload={meeting_date:currentDate,title:CIRCLE_SENTINEL,notes:JSON.stringify(coverage),is_discussed:false,created_by:u.id};
   const result=data?.[0]
-    ? await sb.from('discussion_items').update({content:payload.content,created_by:u.id}).eq('id',data[0].id)
+    ? await sb.from('discussion_items').update({notes:payload.notes,created_by:u.id}).eq('id',data[0].id)
     : await sb.from('discussion_items').insert(payload);
   if(result.error){alert('Kringencontrole opslaan mislukt: '+result.error.message);return false}
   return true;
