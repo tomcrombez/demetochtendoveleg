@@ -145,6 +145,33 @@ h3 { margin: 3px 0 0; font-size: 18px; letter-spacing: -.025em; }
 .read-card .count { color: #345a93; background: var(--blue-soft); }
 .sync-card .count { color: #674688; background: var(--violet-soft); }
 
+.circle-check-wrap{margin:18px 0 18px;padding:16px;border:1px solid #eadfcd;border-radius:15px;background:#fffbf5;}
+.circle-check-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.circle-check-head h4{margin:3px 0 0;font-size:16px;}
+.circle-summary{padding:5px 9px;border-radius:999px;background:#fff0d8;color:#865615;font-size:11px;font-weight:800;white-space:nowrap;}
+.circle-check-list{display:grid;gap:8px;}
+.circle-row{display:grid;grid-template-columns:minmax(150px,.55fr) minmax(0,1.45fr);gap:14px;align-items:center;padding:11px 0;border-top:1px solid #eedfca;}
+.circle-info strong,.circle-info span{display:block;}
+.circle-info strong{font-size:13px;}
+.circle-info span{margin-top:2px;color:var(--muted);font-size:11px;}
+.circle-slots{display:grid;gap:7px;}
+.circle-slot{display:grid;grid-template-columns:minmax(190px,1fr) minmax(170px,.9fr);gap:9px;align-items:center;}
+.circle-check-label{display:flex;align-items:flex-start;gap:8px;min-width:0;padding:7px 9px;border:1px solid #eadfcd;border-radius:10px;background:#fff;cursor:pointer;}
+.circle-check-label input{width:18px;height:18px;flex:0 0 auto;margin:1px 0 0;accent-color:var(--met);}
+.circle-check-label span{min-width:0;font-size:12px;}
+.circle-check-label strong{display:block;}
+.circle-check-label small{display:block;margin-top:2px;color:var(--muted);font-size:10px;}
+.circle-replacement{width:100%;min-height:36px;padding:8px 10px;border:1px solid #eadfcd;border-radius:10px;background:#fff;color:var(--ink);font-size:12px;}
+.circle-replacement:focus{border-color:var(--met);outline:0;box-shadow:0 0 0 3px rgba(12,113,101,.12);}
+.circle-special{grid-template-columns:1fr auto;}
+.circle-special-label{justify-self:end;padding:6px 9px;border-radius:999px;background:#eef4f2;color:var(--muted);font-size:11px;font-weight:750;}
+@media(max-width:700px){
+  .circle-check-head{align-items:flex-start;flex-direction:column;}
+  .circle-row{grid-template-columns:1fr;gap:8px;}
+  .circle-slot{grid-template-columns:1fr;}
+  .circle-special{grid-template-columns:1fr auto;}
+}
+
 .add-form { display: flex; gap: 8px; margin: 20px 0 8px; }
 .add-form input, .announcement-form input, .announcement-form select {
   min-width: 0;
