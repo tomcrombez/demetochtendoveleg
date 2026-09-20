@@ -139,6 +139,7 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
     flowType:'implicit'
   }
 });
+console.log('Ochtendkring app geladen · auth actief');
 let forcedLoggedOut=localStorage.getItem('ochtendkring_logged_out')==='1';
 let currentDate=initialDate(); let currentGrade='all'; let demo=JSON.parse(localStorage.getItem('ochtendkring_demo')||'{}'); let channel=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
