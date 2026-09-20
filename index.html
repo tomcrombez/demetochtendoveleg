@@ -163,9 +163,12 @@ function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&l
 function formatDate(d){return new Intl.DateTimeFormat('nl-BE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(d+'T12:00:00'))}
 function setDate(d){currentDate=d;$('#datePicker').value=d;$('#dayTitle').textContent=formatDate(d);render()}
 async function getUser(){
-  if(forcedLoggedOut)return null;
+  // De echte Supabase-sessie is de bron van waarheid. Gebruik forcedLoggedOut
+  // niet als blokkade: na een OAuth-redirect kan er een nieuwe sessie zijn,
+  // ook wanneer een eerdere mislukte login deze lokale vlag heeft gezet.
   try{
-    const {data}=await sb.auth.getSession();
+    const {data,error}=await sb.auth.getSession();
+    if(error)throw error;
     return data?.session?.user||null;
   }catch(error){
     console.warn('Session ophalen mislukt:',error);
