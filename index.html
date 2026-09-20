@@ -235,7 +235,7 @@ async function renderLinks(){
     el.innerHTML=cats.map(cat=>{
       const catItems=items.filter(x=>x.categoryId===cat.id);
       return '<article class="link-category"><div class="link-category-head"><h3>'+esc(cat.name)+'</h3><div class="link-category-actions"><button class="link-add-item secondary" data-category="'+esc(cat.id)+'" type="button">+ link</button><button class="link-delete-category icon-btn" data-id="'+esc(cat.id)+'" title="Categorie verwijderen">×</button></div></div>'+
-        (catItems.length?'<div class="link-list">'+catItems.map(item=>'<div class="link-row">'+(item.url?'<a class="team-link" href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer"><span class="link-icon">↗</span><span>'+esc(item.name)+'</span></a>':'<span class="team-link link-missing"><span class="link-icon">↗</span><span>'+esc(item.name)+'<small>Link nog niet ingesteld</small></span></span>')+
+        (catItems.length?'<div class="link-list">'+catItems.map(item=>'<div class="link-row" draggable="true" data-link-id="'+esc(item.id)+'" title="Sleep deze link naar een andere categorie">'+(item.url?'<a class="team-link" href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer"><span class="link-icon">↗</span><span>'+esc(item.name)+'</span></a>':'<span class="team-link link-missing"><span class="link-icon">↗</span><span>'+esc(item.name)+'<small>Link nog niet ingesteld</small></span></span>')+
         '<div class="link-row-actions"><button class="link-edit" data-id="'+esc(item.id)+'" type="button">Bewerken</button><button class="link-delete" data-id="'+esc(item.id)+'" type="button">Verwijderen</button></div></div>').join('')+'</div>':'<div class="link-empty">Nog geen links in deze categorie.</div>')+
         '</article>';
     }).join('');
@@ -243,6 +243,28 @@ async function renderLinks(){
     Array.from(document.querySelectorAll('.link-delete')).forEach(b=>b.onclick=()=>deleteLinkRecord(b.dataset.id));
     Array.from(document.querySelectorAll('.link-add-item')).forEach(b=>b.onclick=()=>openLinkDialog('item',null,b.dataset.category));
     Array.from(document.querySelectorAll('.link-delete-category')).forEach(b=>b.onclick=()=>deleteCategory(b.dataset.id));
+    Array.from(document.querySelectorAll('.link-row[draggable="true"]')).forEach(row=>{
+      row.addEventListener('dragstart',e=>{
+        e.dataTransfer.effectAllowed='move';
+        e.dataTransfer.setData('text/plain',row.dataset.linkId);
+        row.classList.add('is-dragging');
+      });
+      row.addEventListener('dragend',()=>row.classList.remove('is-dragging'));
+    });
+    Array.from(document.querySelectorAll('.link-category')).forEach(cat=>{
+      cat.addEventListener('dragover',e=>{
+        e.preventDefault();
+        e.dataTransfer.dropEffect='move';
+        cat.classList.add('drag-over');
+      });
+      cat.addEventListener('dragleave',()=>cat.classList.remove('drag-over'));
+      cat.addEventListener('drop',async e=>{
+        e.preventDefault();
+        cat.classList.remove('drag-over');
+        const linkId=e.dataTransfer.getData('text/plain');
+        if(linkId) await moveLinkRecord(linkId,cat.querySelector('.link-add-item')?.dataset.category||'');
+      });
+    });
   }catch(error){console.error('Links laden:',error);el.innerHTML='<div class="archive-empty">De links konden niet worden geladen: '+esc(error.message||error)+'</div>'}
 }
 async function saveLinkRecord(mode){
@@ -261,6 +283,17 @@ async function saveLinkRecord(mode){
     const {error}=await query;if(error){alert('Opslaan mislukt: '+error.message);return}
   }
   $('#linkDialog').close();await renderLinks();
+}
+async function moveLinkRecord(linkId,newCategoryId){
+  if(!newCategoryId)return;
+  const rows=await loadLinks();
+  const item=rows.find(x=>x.id===linkId);
+  if(!item||item.categoryId===newCategoryId)return;
+  const {error}=await sb.from('reading_items').update({
+    content:JSON.stringify({...item,categoryId:newCategoryId})
+  }).eq('id',linkId);
+  if(error){alert('Verplaatsen mislukt: '+error.message);return}
+  await renderLinks();
 }
 async function deleteLinkRecord(id){
   if(!confirm('Deze link verwijderen?'))return;
