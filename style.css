@@ -286,7 +286,11 @@ h3 { margin: 3px 0 0; font-size: 18px; letter-spacing: -.025em; }
 .link-category-actions .secondary{padding:6px 9px;font-size:11px}
 .link-category-actions .icon-btn{width:30px;height:30px}
 .link-list{padding:4px 0}
-.link-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #edf1ef}
+.link-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #edf1ef;cursor:grab;transition:opacity .15s,background .15s}
+.link-row:active{cursor:grabbing}
+.link-row.is-dragging{opacity:.45}
+.link-category.drag-over{outline:2px dashed var(--met);outline-offset:2px;background:var(--met-soft)}
+.link-category.drag-over .link-category-head{background:#e7f3ef}
 .link-row:last-child{border-bottom:0}
 .team-link{display:flex;align-items:center;gap:9px;min-width:0;flex:1;color:var(--ink);text-decoration:none;font-size:13px;font-weight:650}
 .team-link:hover{color:var(--met);text-decoration:underline}
