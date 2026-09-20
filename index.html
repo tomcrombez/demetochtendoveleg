@@ -10,7 +10,7 @@
 <body>
 <header class="topbar">
   <div class="brand"><span class="brand-mark" aria-hidden="true">M</span><div><span class="eyebrow">De MET · teamruimte</span><h1>Ochtendkring</h1></div></div>
-  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><a id="googleDirectLogin" class="secondary" href="https://krarqagmjrbvsvlcbdwd.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fochtendoverleg-app.vercel.app%2F" aria-label="Inloggen met Google">Inloggen met Google</a><div id="googleSignIn" aria-label="Inloggen met Google"></div><a id="logoutBtn" href="?logout=1" class="secondary hidden" role="button">Uitloggen</a></div>
+  <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><a id="googleDirectLogin" class="secondary hidden" href="https://krarqagmjrbvsvlcbdwd.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fochtendoverleg-app.vercel.app%2F" aria-label="Inloggen met Google">Inloggen met Google</a><div id="googleSignIn" aria-label="Inloggen met Google"></div><a id="logoutBtn" href="?logout=1" class="secondary hidden" role="button">Uitloggen</a></div>
 </header>
 <main class="container">
   <section class="hero card">
@@ -269,7 +269,7 @@ function initGoogleSignIn(){
 }
 window.onGoogleLibraryLoad=initGoogleSignIn;
 setTimeout(initGoogleSignIn,1000);
-async function refreshAuth(){const u=await getUser();$('#googleSignIn').classList.toggle('hidden',!!u);$('#logoutBtn').classList.toggle('hidden',!u);$('#loginNotice').classList.toggle('hidden',!!u);setStatus(u?'online':'offline')}
+async function refreshAuth(){const u=await getUser();$('#googleSignIn').classList.toggle('hidden',!!u);$('#googleDirectLogin').classList.toggle('hidden',!!u);$('#logoutBtn').classList.toggle('hidden',!u);$('#loginNotice').classList.toggle('hidden',!!u);setStatus(u?'online':'offline')}
 function subscribe(){if(channel)sb.removeChannel(channel);channel=sb.channel('ochtendkring-live').on('postgres_changes',{event:'*',schema:'public',table:'discussion_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'reading_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'sync_items'},()=>render()).on('postgres_changes',{event:'*',schema:'public',table:'announcements'},()=>render()).subscribe(s=>setStatus(s==='SUBSCRIBED'?'online':'offline'))}
 async function weekDates(baseDate=currentDate){const base=mondayOf(baseDate),rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);rows.push(dateString(d))}return rows}
 function archiveWeeksFromDates(dates){const currentWeek=weekKey(currentDate);return [...new Set(dates.map(weekKey))].filter(w=>w<currentWeek).sort((a,b)=>b.localeCompare(a))}
