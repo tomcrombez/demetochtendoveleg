@@ -225,7 +225,7 @@ async function loadLinks(){
   }
   return rows;
 }
-async function renderLinks(){
+async async function renderLinks(){
   const el=$('#linksContent');if(!el)return;
   try{
     const rows=await loadLinks();
@@ -247,13 +247,15 @@ async function renderLinks(){
       }
     });
     Array.from(document.querySelectorAll('.link-collapse')).forEach(b=>{
-      const cat=b.closest('.link-category');
-      const list=cat?.querySelector('.link-list,.link-empty');
-      if(!cat||!list)return;
-      const collapsed=cat.classList.toggle('collapsed');
-      b.textContent=collapsed?'▸':'▾';
-      b.setAttribute('aria-expanded',String(!collapsed));
-      b.title=collapsed?'Categorie uitklappen':'Categorie inklappen';
+      b.onclick=()=>{
+        const cat=b.closest('.link-category');
+        const list=cat?.querySelector('.link-list,.link-empty');
+        if(!cat||!list)return;
+        const collapsed=cat.classList.toggle('collapsed');
+        b.textContent=collapsed?'▸':'▾';
+        b.setAttribute('aria-expanded',String(!collapsed));
+        b.title=collapsed?'Categorie uitklappen':'Categorie inklappen';
+      };
     });
     Array.from(document.querySelectorAll('.link-edit')).forEach(b=>b.onclick=()=>openLinkDialog('item',b.dataset.id));
     Array.from(document.querySelectorAll('.link-delete')).forEach(b=>b.onclick=()=>deleteLinkRecord(b.dataset.id));
