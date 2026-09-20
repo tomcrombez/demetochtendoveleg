@@ -13,11 +13,7 @@
   <div class="top-actions"><span id="syncStatus" class="status-dot" title="Verbindingsstatus"></span><span class="sync-label">Live teamoverleg</span><div id="googleSignIn" aria-label="Inloggen met Google"></div><a id="logoutBtn" href="?logout=1" class="secondary hidden" role="button">Uitloggen</a></div>
 </header>
 <main class="container">
-  <nav class="app-nav" aria-label="Teamruimte">
-    <button id="morningTab" class="app-tab active" type="button">Ochtendkring</button>
-    <button id="linksTab" class="app-tab" type="button">Teamlinks</button>
-  </nav>
-  <div id="morningView">  <section class="hero card">
+  <section class="hero card">
     <div class="hero-copy">
       <span class="hero-kicker">Dagstart · samen scherp</span>
       <div class="date-row"><button id="prevDay" class="icon-btn" aria-label="Vorige dag">←</button><input id="datePicker" type="date" aria-label="Datum"><button id="nextDay" class="icon-btn" aria-label="Volgende dag">→</button><button id="todayBtn" class="secondary">Vandaag</button></div>
@@ -67,48 +63,7 @@
     <form id="announcementForm" class="announcement-form"><select id="announcementGrade" aria-label="Voor wie?"><option value="all">Iedereen</option><option value="first">1e graad</option><option value="second">2e graad</option><option value="third">3e graad</option></select><input id="announcementInput" required maxlength="220" placeholder="Wat moeten de leerlingen weten?"><button class="primary">Mededeling toevoegen</button></form>
     <ul id="announcementList" class="item-list"></ul>
   </section>
-  </div>
-  <section id="linksView" class="links-page hidden">
-    <div class="card links-card">
-      <div class="links-page-head">
-        <div>
-          <span class="eyebrow">Teamruimte</span>
-          <h2>Teamlinks</h2>
-          <p class="muted">Alle belangrijke documenten, planningen en praktische tools op één plek.</p>
-        </div>
-        <div class="links-actions">
-          <button id="addCategoryBtn" class="secondary" type="button">+ Categorie</button>
-          <button id="addLinkBtn" class="primary" type="button">+ Link</button>
-        </div>
-      </div>
-      <div id="linksContent" class="links-content"></div>
-    </div>
-  </section>
 </main>
-
-<dialog id="linkDialog" class="modal">
-  <div class="modal-head">
-    <div><span class="eyebrow">Beheer</span><h2 id="linkDialogTitle">Link toevoegen</h2></div>
-    <button id="closeLinkDialog" class="icon-btn" type="button">×</button>
-  </div>
-  <form id="linkForm" class="link-form">
-    <input type="hidden" id="linkEditId">
-    <input type="hidden" id="linkMode" value="item">
-    <label id="linkCategoryLabel">Categorie
-      <select id="linkCategory" required></select>
-    </label>
-    <label>Naam
-      <input id="linkName" required maxlength="180" placeholder="Naam van de link">
-    </label>
-    <label id="linkUrlLabel">URL
-      <input id="linkUrl" type="url" maxlength="500" placeholder="https://...">
-    </label>
-    <div class="link-form-actions">
-      <button id="cancelLink" class="secondary" type="button">Annuleren</button>
-      <button class="primary" type="submit">Opslaan</button>
-    </div>
-  </form>
-</dialog>
 
 <dialog id="weekDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Overzicht</span><h2>Deze week</h2></div><button id="closeWeek" class="icon-btn">×</button></div><div id="weekContent"></div></dialog><dialog id="archiveDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Historiek</span><h2>Archief</h2><p class="muted small">Voorbije werkweken blijven bewaard.</p></div><button id="closeArchive" class="icon-btn">×</button></div><div id="archiveContent"></div></dialog><dialog id="searchDialog" class="modal"><div class="modal-head"><div><span class="eyebrow">Zoeken</span><h2>Zoekresultaten</h2></div><button id="closeSearch" class="icon-btn">×</button></div><div id="searchContent"></div></dialog>
 <template id="itemTemplate"><li class="item"><div class="item-main"><span class="item-text"></span><span class="meta"></span></div><button class="delete" title="Verwijderen" aria-label="Verwijderen">×</button></li></template>
@@ -167,9 +122,6 @@ async function getUser(){
 async function requireLogin(){const u=await getUser();if(!u){alert('Log eerst in met je Google-account.');return false}return true}
 const tableFor={discuss:'discussion_items',read:'reading_items',sync:'sync_items'};
 const CHECKIN_SENTINEL='__OCHTENDKRING_CHECKIN__';
-const LINK_SENTINEL='__OCHTENDKRING_LINK__';
-let linksInitialized=false;
-const DEFAULT_LINK_CATEGORIES=JSON.parse(`[{"name":"KALENDERS","items":[{"name":"Kalender 2026-2027","url":"https://docs.google.com/spreadsheets/d/1kojORWnhRuSS1pruELzubh01tvmhscsB0jcrGaT8aTg/edit?gid=1626193747#gid=1626193747"},{"name":"Lessenroosters","url":"https://docs.google.com/spreadsheets/d/1OFmzCZrOTFiYug1R4NKfx7bvF8-PwWn4tOcHAHZct9A/edit?gid=0#gid=0"},{"name":"MET structuur jaarplanning Aurélie","url":"https://docs.google.com/spreadsheets/d/1HnG0ilDlu_-w_AYAf8TuCUYeY-jZzgYxHUiYZLhPqcs/edit?gid=0#gid=0"},{"name":"Keuken kuisen","url":"https://docs.google.com/document/d/1UmQITU3tl81_5ft1IX3g3rZiBPkVnrn3CnPWYXv_8sA/edit?tab=t.0"},{"name":"Zomeroverleg 2025-2026","url":""},{"name":"Schooljte openen","url":"https://docs.google.com/document/d/1Fc4PlXYs1UkxyPtvv2teF63Ssnw4O0kJhl_OgTmbf0/edit?tab=t.0#heading=h.qnlf5fnhw2i"},{"name":"Samwerkingsruimtes template","url":"https://docs.google.com/spreadsheets/d/1HXRIzk4s-dDguaUfw0-hvbe5dPvVQsXrWWT9w4xWuWE/edit?gid=0#gid=0"}]},{"name":"KRINGEN","items":[{"name":"Toezichten/kringen TW 26-27 (nog niet klaar)","url":"https://docs.google.com/spreadsheets/d/1G_xBptQX6x3weBD_IAb-MHrzKIT9wX-1BkAa_8X-65k/edit?gid=133177732#gid=133177732"},{"name":"Kringen 26-27 (eerste graad)","url":"https://docs.google.com/spreadsheets/d/1GYLgq8ggzcM-Wykpgj8tGaJyYy8KVZT6/edit?gid=1516164669#gid=1516164669"},{"name":"Kringen 26-27 (tweede graad) / derde graad","url":"https://docs.google.com/spreadsheets/d/1EMUproKGg3txG5LvZjJ7f1iMEPHH3B8A/edit?gid=1516164669#gid=1516164669"},{"name":"Feedback Kring 9 - Kangoe-Rex / evaluatie Kring 10 Narwal","url":"https://docs.google.com/document/d/1Id4gl5cQV7IwlGtI2VPSccaVS_WUw8WomJnMJyesrjE/edit?usp=sharing"},{"name":"Feedback Kring 8","url":"https://docs.google.com/document/d/1DFUMsbg5jyiYCdF35gDSY1DzYY-LK0FWsoO5KkNLxP8/edit?usp=sharing"},{"name":"Check-in vragen en alternatieve invulling","url":"https://docs.google.com/document/d/1OAhQG5aKrOX-kjc1b0rs6-8Tj1aDKOJwy7J9sTXA5_s/edit"},{"name":"Om lln andere plaatsen te geven in de kring","url":"https://docs.google.com/document/d/1C-JpYxrPuDVoHeUuUzj4By1aTMfpq11keBkFBaftgpk/edit?tab=t.0#heading=h.so1e10p1g0o6"},{"name":"Grej of the day","url":""},{"name":"Ideeën PAC (vooral eerste graad)","url":"https://docs.google.com/document/d/1RhnsFwWn5fqVSAg5SsZUaKJ3B3NX1qrYk7nfMqIga7s/edit?tab=t.0"},{"name":"Hybridedag '25-'26","url":""}]},{"name":"LEERLINGENLIJSTEN EN LEERKRACHTENLIJSTEN","items":[{"name":"LLlijst en database Wouter","url":"https://docs.google.com/spreadsheets/d/1UlB60mOnA9aledU-liwf2-3y8TBFgpD9td8ijob5NKI/edit?gid=0#gid=0"},{"name":"LLlijst infofiches 1A en 1B","url":""},{"name":"LLlijst met bliksems","url":"https://docs.google.com/spreadsheets/d/1w9ILZNyCt8ToroqQzA1Esr1fa1rq6Gi1ta_89cFxiKk/edit?gid=0#gid=0"},{"name":"Buddyverdeling","url":""},{"name":"Aanwezigheden SPORT","url":"https://drive.google.com/file/d/1InEMjQzJpMsmQfPOyNfM2sukNcA5s8MD/view?usp=sharing"},{"name":"Adressenlijst team","url":"https://docs.google.com/document/d/1IxDJjVjfQOMN6Jp-AfVwo5_MwBFknB4Br9Ml_D9-C7U/edit?tab=t.0"}]},{"name":"Mailinglijst ouders","items":[{"name":"Mailinglijst ouders","url":"https://docs.google.com/spreadsheets/d/19WBHqx2EsUK_uTmhRp2HJnKRFkIB4d5ozZQ7qeRwxLc/edit?usp=sharing"}]},{"name":"Boeken bijhouden door leerlingen","items":[{"name":"Boeken bijhouden door leerlingen","url":"https://docs.google.com/document/d/1eAyFqR0o5X_CFfLQE3DipzT1IVlWJqJ6q8zNkr7jf_M/edit?usp=sharing"}]},{"name":"ZORG & LEERSTEUN","items":[{"name":"LLoverleg","url":"https://docs.google.com/spreadsheets/d/1bXxsUjg-WKssx1OGpmvbEHADRuCFKj7K/edit?usp=sharing&ouid=110694666100308093108&rtpof=true&sd=true"},{"name":"Bednet wachtwoorden","url":""},{"name":"Overzicht zorg alle lln","url":"https://docs.google.com/spreadsheets/d/1pMpLGfsku1Cln6uB7lzrxnyjfrch_WUSNo9sWhAQNwk/edit?usp=drive_link"},{"name":"Nieuwe werking leersteun","url":"https://www.youtube.com/watch?v=bsCPviAYaXc"},{"name":"Stageactiviteiten","url":""},{"name":"Agenda vrije leerlingen","url":""}]},{"name":"ACTIVITEITEN","items":[{"name":"Gouden Weken","url":"https://docs.google.com/document/d/1pnK6f_VnrFeqjiwyVEFZ_Rv0G-cE1ytUl74js5JyrXo/edit?tab=t.lloochw5sooz#heading=h.5sqgbx3oa4cy"},{"name":"Themaweek","url":""},{"name":"Hybridedag","url":""},{"name":"Meerdaagse, begeleiding","url":""},{"name":"Zilveren week","url":""},{"name":"Uitstappen dit schooljaar","url":"https://docs.google.com/document/d/1e37YAuOLglAhmgzuY1m0zA-zX9PPUhlFO3wXqpsWnD4/edit?tab=t.jmb9epc1abb9"},{"name":"MET extra's","url":"https://docs.google.com/spreadsheets/d/1lnTZmQsQpVVIU0vLOeQnK5axWWHDs7Mm77ujFHsAi0Y/edit?gid=0#gid=0"},{"name":"Infoavonden","url":"https://docs.google.com/document/d/1ggUGZZLEhQBtcltf4CmZ7Cf9pcY9uMYk7FZZ76JX9H4/edit?tab=t.0"},{"name":"Expertises ouders","url":"https://docs.google.com/document/d/1egMsrV7cEvuUHAzTrtPeF308rjSH-xvwVhZ4IjlxIF8/edit?tab=t.0"}]},{"name":"DE MET DOCUMENTEN & PRAKTISCH","items":[{"name":"Huisstijl","url":"https://docs.google.com/presentation/d/1ipKKwQjSaXCJWAs7IUS24R62XEyEH7Qi/edit#slide=id.p1"},{"name":"MET-raad","url":"https://docs.google.com/document/d/1HVMuvBVCl18LKU_1IyUqjxw-gi4z3jIV2YacaYzbL8s/edit?tab=t.0#heading=h.560wpsdrs52v"},{"name":"Afspraken","url":"https://docs.google.com/document/d/1w3N9x3dx5HlGpN5BfbMB51sdNhUirGWcwlvvfUxX8QE/edit?tab=t.0#heading=h.dj5uyd71fky5"},{"name":"Agenda afspraken team","url":"https://docs.google.com/presentation/d/1WfiXTWnEqnowv_9VZFVIJnT1Gom7cC4j9dBkXdr7y94/edit?slide=id.p#slide=id.p"},{"name":"Reservering samenwerkingsruimte","url":""},{"name":"WeZooz codes leerlingen","url":"https://docs.google.com/spreadsheets/d/1LYz2S-PthJYMIO4rK9clLIvKDcUeebmwxU8SOWaCZiU/edit?gid=0#gid=0"},{"name":"WeZooz inloggen / promotiecode","url":"https://www.wezoozacademy.be/promotiecode/"},{"name":"Afspraakplanning maken","url":""},{"name":"Feedbackdoc aan coachee koppelen","url":"https://docs.google.com/document/d/14SEW3VIpeUiPbrF4sjtNn7uPD44XkfEdL2IVg-FNmXE/edit"},{"name":"Werkdoc voor de werkgroepen en klein overleg","url":"https://docs.google.com/document/d/1NM-cOn5rjcGbfZLZ2LfX4oiWIGQvxtPXk5lQXowFCYc/edit?tab=t.lloochw5sooz"},{"name":"Driver werkgroepen","url":"https://docs.google.com/document/d/1K7VbufJHZGV6EyefBjlHC7AeoR3oAR8kWaskNU6CoM8/edit?tab=t.9iqwhm49vi45"},{"name":"Visitiaties","url":""},{"name":"Driehoeksgesprekken inplannen","url":""},{"name":"AI","url":""},{"name":"Werkgroepen","url":"https://docs.google.com/document/d/1K7VbufJHZGV6EyefBjlHC7AeoR3oAR8kWaskNU6CoM8/edit?tab=t.lloochw5sooz"},{"name":"Takenverdeling coördinatie","url":""},{"name":"Afspraken samenwerken","url":"https://docs.google.com/document/d/1MM9x_MmcoNGgqHVlh3ayh2qxIIschU9lI-8CB-GR1BQ/edit?tab=t.0#heading=h.vube7pumlznk"}]},{"name":"EVALUATIEDAGEN","items":[{"name":"December","url":""},{"name":"Maart","url":""},{"name":"Juni","url":"https://docs.google.com/document/d/11WC1aDCm4Joydb5Zyp7WJewafT1CxoYM/edit"},{"name":"Planning juni","url":"https://docs.google.com/spreadsheets/d/1tU2UzIBVno22b8q4xyCXHtxcK_GNTEbHsg2aV52Q1eI/edit?gid=1820640911#gid=1820640911"}]},{"name":"COACHGESPREK TEMPLATES","items":[{"name":"Template coachgesprek VOORNAAM NAAM","url":"https://docs.google.com/document/d/1fmuTyiQc3BMSN_u61IZqIPAH48XFT3H5Yz9PL56gMuc/edit?tab=t.0"},{"name":"Template coachgesprek Verticaal VOORNAAM NAAM","url":"https://docs.google.com/spreadsheets/d/1ttxakUoW2P_fRypMomM7SwWxZ-0pqT4RB2AXUIO-Bos/edit?gid=0#gid=0"},{"name":"template COACHGESPREK VOORNAAM NAAM","url":"https://docs.google.com/spreadsheets/d/1J8k-U5aEx9p6OySQegpOeMJLgcXHeX3pcTu6BsNsqfU/edit?gid=1412406155#gid=1412406155"},{"name":"Sjabloon notities challenge","url":"https://docs.google.com/document/d/1G7Nw6w5tqa6ekfrHsBV8GMY19sK7A0qcIyB-d933YlE/edit"},{"name":"bewijsje","url":""}]},{"name":"POETSIE POETSIE AFSPRAKEN","items":[{"name":"Onderhoud whiteboard","url":"https://docs.google.com/document/d/1yTKxhdyEZ2LshAm29K6NEZZflD50UFa0HcivNhTjvVoM/edit?tab=t.0#heading=h.49ukior1djie"}]},{"name":"MEDALS AND MISSIONS","items":[]}]`);
 const checkinSuggestions=[
   'Wat geeft je vandaag energie?',
   'Waar kijk je vandaag het meest naar uit?',
@@ -192,139 +144,10 @@ const checkinSuggestions=[
   'Wat zou vandaag net iets gemakkelijker maken?',
   'Met welk woord zou je je ochtend omschrijven?'
 ];
-async function loadLinks(){
-  if(!sb)return [];
-  const {data,error}=await sb.from('reading_items').select('id,content,created_at,created_by').eq('title',LINK_SENTINEL).order('created_at');
-  if(error)throw error;
-  let rows=(data||[]).map(x=>{try{return {...JSON.parse(x.content),id:x.id,created_at:x.created_at,created_by:x.created_by}}catch(e){return null}}).filter(Boolean);
-  const {data:sessionData}=await sb.auth.getSession();
-  const u=sessionData?.session?.user;
-  if(u){
-    const catRows=rows.filter(x=>x.kind==='category');
-    const missingCats=DEFAULT_LINK_CATEGORIES.filter(cat=>!catRows.some(x=>x.name===cat.name)).map(cat=>({meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify({id:uid(),kind:'category',name:cat.name})}));
-    if(missingCats.length){
-      const {error:e}=await sb.from('reading_items').insert(missingCats);if(e)throw e;
-      const fresh=await sb.from('reading_items').select('id,content,created_at,created_by').eq('title',LINK_SENTINEL).order('created_at');if(fresh.error)throw fresh.error;
-      rows=(fresh.data||[]).map(x=>{try{return {...JSON.parse(x.content),id:x.id,created_at:x.created_at,created_by:x.created_by}}catch(e){return null}}).filter(Boolean);
-    }
-    const cats=rows.filter(x=>x.kind==='category'),missing=[],updates=[];
-    for(const cat of DEFAULT_LINK_CATEGORIES){
-      const category=cats.find(x=>x.name===cat.name);if(!category)continue;
-      for(const item of cat.items){
-        const existing=rows.find(x=>x.kind==='item'&&x.categoryId===category.id&&x.name===item.name);
-        if(!existing)missing.push({meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify({id:uid(),kind:'item',categoryId:category.id,name:item.name,url:item.url||''})});
-        else if(item.url&&existing.url!==item.url)updates.push(sb.from('reading_items').update({content:JSON.stringify({...existing,url:item.url})}).eq('id',existing.id));
-      }
-    }
-    if(missing.length){const {error:e}=await sb.from('reading_items').insert(missing);if(e)throw e}
-    if(updates.length){const results=await Promise.all(updates);const failed=results.find(x=>x.error);if(failed)throw failed.error}
-    if(missing.length||updates.length){
-      const fresh=await sb.from('reading_items').select('id,content,created_at,created_by').eq('title',LINK_SENTINEL).order('created_at');if(fresh.error)throw fresh.error;
-      rows=(fresh.data||[]).map(x=>{try{return {...JSON.parse(x.content),id:x.id,created_at:x.created_at,created_by:x.created_by}}catch(e){return null}}).filter(Boolean);
-    }
-  }
-  return rows;
-}
-async function renderLinks(){
-  const el=$('#linksContent');if(!el)return;
-  try{
-    const rows=await loadLinks();
-    const cats=rows.filter(x=>x.kind==='category');
-    const items=rows.filter(x=>x.kind==='item');
-    if(!cats.length){el.innerHTML='<div class="archive-empty">Nog geen categorieën. Voeg er hieronder één toe.</div>';return}
-    el.innerHTML=cats.map(cat=>{
-      const catItems=items.filter(x=>x.categoryId===cat.id);
-      return '<article class="link-category"><div class="link-category-head"><h3>'+esc(cat.name)+'</h3><div class="link-category-actions"><button class="link-add-item secondary" data-category="'+esc(cat.id)+'" type="button">+ link</button><button class="link-delete-category icon-btn" data-id="'+esc(cat.id)+'" title="Categorie verwijderen">×</button></div></div>'+
-        (catItems.length?'<div class="link-list">'+catItems.map(item=>'<div class="link-row" draggable="true" data-link-id="'+esc(item.id)+'" title="Sleep deze link naar een andere categorie">'+(item.url?'<a class="team-link" href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer"><span class="link-icon">↗</span><span>'+esc(item.name)+'</span></a>':'<span class="team-link link-missing"><span class="link-icon">↗</span><span>'+esc(item.name)+'<small>Link nog niet ingesteld</small></span></span>')+
-        '<div class="link-row-actions"><button class="link-edit" data-id="'+esc(item.id)+'" type="button">Bewerken</button><button class="link-delete" data-id="'+esc(item.id)+'" type="button">Verwijderen</button></div></div>').join('')+'</div>':'<div class="link-empty">Nog geen links in deze categorie.</div>')+
-        '</article>';
-    }).join('');
-    Array.from(document.querySelectorAll('.link-edit')).forEach(b=>b.onclick=()=>openLinkDialog('item',b.dataset.id));
-    Array.from(document.querySelectorAll('.link-delete')).forEach(b=>b.onclick=()=>deleteLinkRecord(b.dataset.id));
-    Array.from(document.querySelectorAll('.link-add-item')).forEach(b=>b.onclick=()=>openLinkDialog('item',null,b.dataset.category));
-    Array.from(document.querySelectorAll('.link-delete-category')).forEach(b=>b.onclick=()=>deleteCategory(b.dataset.id));
-    Array.from(document.querySelectorAll('.link-row[draggable="true"]')).forEach(row=>{
-      row.addEventListener('dragstart',e=>{
-        e.dataTransfer.effectAllowed='move';
-        e.dataTransfer.setData('text/plain',row.dataset.linkId);
-        row.classList.add('is-dragging');
-      });
-      row.addEventListener('dragend',()=>row.classList.remove('is-dragging'));
-    });
-    Array.from(document.querySelectorAll('.link-category')).forEach(cat=>{
-      cat.addEventListener('dragover',e=>{
-        e.preventDefault();
-        e.dataTransfer.dropEffect='move';
-        cat.classList.add('drag-over');
-      });
-      cat.addEventListener('dragleave',()=>cat.classList.remove('drag-over'));
-      cat.addEventListener('drop',async e=>{
-        e.preventDefault();
-        cat.classList.remove('drag-over');
-        const linkId=e.dataTransfer.getData('text/plain');
-        if(linkId) await moveLinkRecord(linkId,cat.querySelector('.link-add-item')?.dataset.category||'');
-      });
-    });
-  }catch(error){console.error('Links laden:',error);el.innerHTML='<div class="archive-empty">De links konden niet worden geladen: '+esc(error.message||error)+'</div>'}
-}
-async function saveLinkRecord(mode){
-  const name=$('#linkName').value.trim(),url=$('#linkUrl').value.trim(),categoryId=$('#linkCategory').value,editId=$('#linkEditId').value;
-  if(!name)return;
-  const {data:sessionData}=await sb.auth.getSession();const u=sessionData?.session?.user;
-  if(!u){alert('Je bent niet ingelogd.');return}
-  if(mode==='category'){
-    const payload={meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify({id:uid(),kind:'category',name})};
-    const {error}=await sb.from('reading_items').insert(payload);if(error){alert('Opslaan mislukt: '+error.message);return}
-  }else{
-    if(url && !/^https?:\/\//i.test(url)){alert('Gebruik een volledige URL, bijvoorbeeld https://...');return}
-    const obj={id:editId||uid(),kind:'item',categoryId,name,url};
-    const payload={meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify(obj)};
-    const query=editId?sb.from('reading_items').update(payload).eq('id',editId):sb.from('reading_items').insert(payload);
-    const {error}=await query;if(error){alert('Opslaan mislukt: '+error.message);return}
-  }
-  $('#linkDialog').close();await renderLinks();
-}
-async function moveLinkRecord(linkId,newCategoryId){
-  if(!newCategoryId)return;
-  const rows=await loadLinks();
-  const item=rows.find(x=>x.id===linkId);
-  if(!item||item.categoryId===newCategoryId)return;
-  const {error}=await sb.from('reading_items').update({
-    content:JSON.stringify({...item,categoryId:newCategoryId})
-  }).eq('id',linkId);
-  if(error){alert('Verplaatsen mislukt: '+error.message);return}
-  await renderLinks();
-}
-async function deleteLinkRecord(id){
-  if(!confirm('Deze link verwijderen?'))return;
-  const {error}=await sb.from('reading_items').delete().eq('id',id);if(error){alert('Verwijderen mislukt: '+error.message);return}await renderLinks();
-}
-async function deleteCategory(id){
-  if(!confirm('Deze categorie en alle links erin verwijderen?'))return;
-  const rows=await loadLinks(),ids=rows.filter(x=>x.id===id||x.categoryId===id).map(x=>x.id);
-  if(ids.length){const {error}=await sb.from('reading_items').delete().in('id',ids);if(error){alert('Verwijderen mislukt: '+error.message);return}}
-  await renderLinks();
-}
-function openLinkDialog(mode='item',editId=null,categoryId=''){
-  $('#linkMode').value=mode;$('#linkEditId').value=editId||'';
-  const dialog=$('#linkDialog'),catSelect=$('#linkCategory'),url=$('#linkUrl');
-  const rows=window.__teamLinks||[];
-  const cats=rows.filter(x=>x.kind==='category');
-  catSelect.innerHTML=cats.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
-  $('#linkDialogTitle').textContent=mode==='category'?'Categorie toevoegen':(editId?'Link bewerken':'Link toevoegen');
-  $('#linkCategoryLabel').classList.toggle('hidden',mode==='category');
-  $('#linkUrlLabel').classList.toggle('hidden',mode==='category');
-  $('#linkCategory').required=mode!=='category';$('#linkUrl').required=false;
-  $('#linkName').value='';url.value='';
-  if(editId){
-    const item=rows.find(x=>x.id===editId);if(item){$('#linkName').value=item.name||'';url.value=item.url||'';catSelect.value=item.categoryId||''}
-  }else if(categoryId)catSelect.value=categoryId;
-  dialog.showModal();
-}
 async function loadItems(type,date=currentDate){
   if(!sb)return demo[key(date,type)]||[];
   if(type==='discuss'){const {data,error}=await sb.from('discussion_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.title,discussed:x.is_discussed,author_name:''}));}
-  if(type==='read'){const {data,error}=await sb.from('reading_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).filter(x=>x.title!==CHECKIN_SENTINEL&&x.title!==LINK_SENTINEL).map(x=>({...x,text:x.title,author_name:''}));}
+  if(type==='read'){const {data,error}=await sb.from('reading_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).filter(x=>x.title!==CHECKIN_SENTINEL).map(x=>({...x,text:x.title,author_name:''}));}
   const {data,error}=await sb.from('sync_items').select('*').eq('meeting_date',date).order('created_at');if(error)throw error;return (data||[]).map(x=>({...x,text:x.reason?x.colleague_name+' · '+x.reason:x.colleague_name,discussed:x.is_done,author_name:''}));
 }
 function suggestedCheckin(date=currentDate){return checkinSuggestions[Math.abs([...date].reduce((n,c)=>n+c.charCodeAt(0),0))%checkinSuggestions.length]}
@@ -403,7 +226,7 @@ if(type==='discuss'){const action=document.createElement('button');action.classN
 if(type==='sync'){const action=document.createElement('button');action.className='discussed-toggle '+(item.discussed?'is-done':'');action.textContent=item.discussed?'Afgerond ✓':'Markeer als afgerond';action.onclick=()=>updateItem(type,item.id,{discussed:!item.discussed});main.prepend(action)}
 el.append(node)})}
 function drawAnnouncements(items){const visible=currentGrade==='all'?items:items.filter(a=>a.grade==='all'||a.grade===currentGrade);const el=$('#announcementList');el.innerHTML='';if(!visible.length){el.innerHTML='<li class="empty">Nog geen mededelingen voor deze selectie.</li>';return}visible.forEach(a=>{const li=document.createElement('li');li.className='item';li.innerHTML=`<div class="item-main"><span class="item-text">${esc(a.text)}</span><span class="meta"><span class="audience">${esc(labels[a.grade])}</span> · ${esc(a.author_name||'')} ${a.created_at?'· '+new Date(a.created_at).toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}):''}</span></div><button class="delete" title="Verwijderen">×</button>`;li.querySelector('.delete').onclick=()=>deleteAnnouncement(a.id);el.append(li)})}
-async function render(){try{const [d,r,s,a]=await Promise.all([loadItems('discuss'),loadItems('read'),loadItems('sync'),loadAnnouncements()]);drawList($('#listDiscuss'),d,'discuss');drawList($('#listRead'),r,'read');drawList($('#listSync'),s,'sync');drawAnnouncements(a);$('#countDiscuss').textContent=d.length;$('#countRead').textContent=r.length;$('#countSync').textContent=s.length;await renderLinks();setStatus('online')}catch(e){console.error(e);setStatus('offline');}}
+async function render(){try{const [d,r,s,a]=await Promise.all([loadItems('discuss'),loadItems('read'),loadItems('sync'),loadAnnouncements()]);drawList($('#listDiscuss'),d,'discuss');drawList($('#listRead'),r,'read');drawList($('#listSync'),s,'sync');drawAnnouncements(a);$('#countDiscuss').textContent=d.length;$('#countRead').textContent=r.length;$('#countSync').textContent=s.length;setStatus('online')}catch(e){console.error(e);setStatus('offline');}}
 function setStatus(state){const el=$('#syncStatus');el.className='status-dot '+state;el.title=state==='online'?'Verbonden':'Offline / fout'}
 async function handleGoogleCredential(response){
   try{
@@ -459,7 +282,7 @@ function renderArchive(weeks){
  const el=$("#archiveContent");
  if(!weeks.length){el.innerHTML="<div class=\"archive-empty\">Er staan nog geen voorbije werkweken in het archief.</div>";$("#archiveDialog").showModal();return}
  el.innerHTML=weeks.map(w=>"<button class=\"archive-week\" data-week=\""+w+"\"><span><strong>Week "+esc(formatWeek(w))+"</strong><small>"+w+"</small></span><span aria-hidden=\"true\">→</span></button>").join("");
- $$(".archive-week").forEach(b=>b.onclick=()=>{setDate(b.dataset.week);$("#archiveDialog").close()});$("#archiveDialog").showModal()
+ $(".archive-week").forEach(b=>b.onclick=()=>{setDate(b.dataset.week);$("#archiveDialog").close()});$("#archiveDialog").showModal()
 }
 async function searchAll(term){
   term=term.trim();if(!term)return;
@@ -491,11 +314,11 @@ async function searchAll(term){
   el.innerHTML=results.length
     ? "<p class=\"search-summary\">"+results.length+" resultaat/resultaten voor <strong>"+esc(term)+"</strong></p>"+results.map(r=>"<button class=\"search-result\" data-date=\""+esc(r.date)+"\"><span class=\"search-result-type\">"+esc(r.type)+"</span><strong>"+esc(r.text)+"</strong><small>"+esc(formatDate(r.date))+(r.detail?" · "+esc(r.detail):"")+"</small></button>").join("")
     : "<div class=\"archive-empty\">Geen resultaten gevonden.</div>";
-  $$(".search-result").forEach(b=>b.onclick=()=>{setDate(b.dataset.date);$("#searchDialog").close()});
+  $(".search-result").forEach(b=>b.onclick=()=>{setDate(b.dataset.date);$("#searchDialog").close()});
   $("#searchDialog").showModal()
 }
 
-async function weekOverview(){const base=new Date(currentDate+'T12:00:00');const day=(base.getDay()+6)%7;base.setDate(base.getDate()-day);const rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);const ds=d.toISOString().slice(0,10);const [a,b,c,n]=await Promise.all([loadItems('discuss',ds),loadItems('read',ds),loadItems('sync',ds),loadAnnouncements(ds)]);rows.push({ds,a,b,c,n})}$('#weekContent').innerHTML=rows.map(x=>`<button type="button" class="week-day" data-date="${esc(x.ds)}" aria-label="Ga naar ${esc(formatDate(x.ds))}"><h3>${esc(formatDate(x.ds))}</h3><div class="week-grid"><span>Bespreken <b>${x.a.length}</b></span><span>Lezen <b>${x.b.length}</b></span><span>1-op-1 <b>${x.c.length}</b></span><span>Leerlingen <b>${x.n.length}</b></span></div>${x.a.map(i=>`<div class="week-item ${i.discussed?'done':''}">${i.discussed?'✓ ':''}${esc(i.text)}${i.notes?`<small>${esc(i.notes)}</small>`:''}</div>`).join('')}</button>`).join('');$$('.week-day').forEach(day=>day.onclick=()=>{setDate(day.dataset.date);$('#weekDialog').close()});$('#weekDialog').showModal()}
+async function weekOverview(){const base=new Date(currentDate+'T12:00:00');const day=(base.getDay()+6)%7;base.setDate(base.getDate()-day);const rows=[];for(let i=0;i<5;i++){const d=new Date(base);d.setDate(base.getDate()+i);const ds=d.toISOString().slice(0,10);const [a,b,c,n]=await Promise.all([loadItems('discuss',ds),loadItems('read',ds),loadItems('sync',ds),loadAnnouncements(ds)]);rows.push({ds,a,b,c,n})}$('#weekContent').innerHTML=rows.map(x=>`<button type="button" class="week-day" data-date="${esc(x.ds)}" aria-label="Ga naar ${esc(formatDate(x.ds))}"><h3>${esc(formatDate(x.ds))}</h3><div class="week-grid"><span>Bespreken <b>${x.a.length}</b></span><span>Lezen <b>${x.b.length}</b></span><span>1-op-1 <b>${x.c.length}</b></span><span>Leerlingen <b>${x.n.length}</b></span></div>${x.a.map(i=>`<div class="week-item ${i.discussed?'done':''}">${i.discussed?'✓ ':''}${esc(i.text)}${i.notes?`<small>${esc(i.notes)}</small>`:''}</div>`).join('')}</button>`).join('');$('.week-day').forEach(day=>day.onclick=()=>{setDate(day.dataset.date);$('#weekDialog').close()});$('#weekDialog').showModal()}
 async function saveNewItem(type,fields){
   try{
     const {data,error:sessionError}=await sb.auth.getSession();
@@ -582,13 +405,6 @@ document.getElementById('logoutBtn').addEventListener('click',()=>{
   }
   window.location.replace(window.location.pathname+'?logout=1');
 });
-document.getElementById('morningTab').addEventListener('click',()=>{ $('#morningTab').classList.add('active');$('#linksTab').classList.remove('active');$('#morningView').classList.remove('hidden');$('#linksView').classList.add('hidden'); });
-document.getElementById('linksTab').addEventListener('click',async()=>{ $('#linksTab').classList.add('active');$('#morningTab').classList.remove('active');$('#morningView').classList.add('hidden');$('#linksView').classList.remove('hidden'); window.__teamLinks=await loadLinks(); await renderLinks(); });
-document.getElementById('addCategoryBtn').addEventListener('click',async()=>{window.__teamLinks=await loadLinks();openLinkDialog('category')});
-document.getElementById('addLinkBtn').addEventListener('click',async()=>{window.__teamLinks=await loadLinks();if(!window.__teamLinks.some(x=>x.kind==='category')){alert('Maak eerst een categorie aan.');return}openLinkDialog('item')});
-$('#closeLinkDialog').onclick=()=>$('#linkDialog').close();
-$('#cancelLink').onclick=()=>$('#linkDialog').close();
-$('#linkForm').addEventListener('submit',async e=>{e.preventDefault();await saveLinkRecord($('#linkMode').value)});
 document.getElementById('weekBtn').addEventListener('click',async(e)=>{e.preventDefault();try{await weekOverview()}catch(error){console.error('Weekoverzicht:',error);alert('Weekoverzicht kon niet worden geopend: '+(error.message||error));}});
 $('#searchForm').addEventListener('submit',e=>{e.preventDefault();searchAll($('#searchInput').value)});
 $('#closeSearch').onclick=()=>$('#searchDialog').close();
@@ -614,5 +430,4 @@ sb.auth.onAuthStateChange(async (event)=>{
   if(await getUser())subscribe();
 })();
 </script>
-<!-- Vercel deployment trigger 2026-09-20 -->
 </body></html>
