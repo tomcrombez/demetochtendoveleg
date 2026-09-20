@@ -305,5 +305,6 @@ h3 { margin: 3px 0 0; font-size: 18px; letter-spacing: -.025em; }
 @media(max-width:900px){.links-content{grid-template-columns:1fr}.links-page-head{align-items:flex-start;flex-direction:column}.links-actions{width:100%}.links-actions button{flex:1}}
 @media(max-width:700px){.app-nav{width:100%}.app-tab{flex:1}.links-card{padding:18px}.link-row{align-items:flex-start}.link-row-actions{flex-direction:column}}
 
-.site-photo-header{width:100%;height:250px;margin:0 0 18px;background-image:url('./ochtendkring-header.jpg');background-size:cover;background-position:center 58%;border-radius:0 0 24px 24px;box-shadow:0 8px 24px rgba(14,83,75,.10)}
-@media (max-width:700px){.site-photo-header{height:170px;border-radius:0 0 18px 18px;background-position:center center}}
+.site-photo-header{width:100%;height:250px;margin:0 0 18px;overflow:hidden;border-radius:0 0 24px 24px;box-shadow:0 8px 24px rgba(14,83,75,.10);background:#eaf3f0}
+.site-photo-header img{display:block;width:100%;height:100%;object-fit:cover;object-position:center center}
+@media (max-width:700px){.site-photo-header{height:170px;border-radius:0 0 18px 18px}.site-photo-header img{object-position:center center}}
