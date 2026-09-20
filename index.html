@@ -256,7 +256,7 @@ async function saveLinkRecord(mode){
     const payload={meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify({id:uid(),kind:'category',name})};
     const {error}=await sb.from('reading_items').insert(payload);if(error){alert('Opslaan mislukt: '+error.message);return}
   }else{
-    if(url&&!/^https?:\\/\\//i.test(url)){alert('Gebruik een volledige URL, bijvoorbeeld https://...');return}
+    if(url && !/^https?:\/\//i.test(url)){alert('Gebruik een volledige URL, bijvoorbeeld https://...');return}
     const obj={id:editId||uid(),kind:'item',categoryId,name,url};
     const payload={meeting_date:currentDate,created_by:u.id,title:LINK_SENTINEL,content:JSON.stringify(obj)};
     const query=editId?sb.from('reading_items').update(payload).eq('id',editId):sb.from('reading_items').insert(payload);
